@@ -1,0 +1,6 @@
+{
+  "parent": "microfuge_rack",
+  "from_version": 1,
+  "mode": "derive",
+  "note": "1x16 single-row strip"
+}

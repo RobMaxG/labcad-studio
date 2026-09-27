@@ -1,0 +1,18 @@
+{
+  "tubes": 6,
+  "pitch": 38.0,
+  "well_d": 30.6,
+  "height": 37.0,
+  "floor": 2.0,
+  "drain_d": 7.0,
+  "width": 50.0,
+  "end_margin": 6.0,
+  "corner_r": 8.0,
+  "top_chamfer": 1.5,
+  "bottom_chamfer": 0.8,
+  "well_chamfer": 1.5,
+  "grip_r": 9.0,
+  "grip_bite": 3.0,
+  "label_size": 5.0,
+  "label_depth": 0.5
+}

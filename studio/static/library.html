@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LabCAD Library</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27%3E%3Cpath d=%27M3 8 12 3l9 5-9 5z%27 fill=%27%239fc0e8%27/%3E%3Cpath d=%27M3 8v8l9 5V13z%27 fill=%27%236f8db0%27/%3E%3Cpath d=%27M21 8v8l-9 5V13z%27 fill=%27%23ff9f43%27/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+<style>
+  :root{--bed:#1d2025;--bed-2:#171a1e;--panel:#22262c;--line:#30353d;--line-2:#3c424b;--ink:#e8e3da;--ink-2:#a9aeb6;--ink-3:#6f757f;--marker:#ff9f43;--marker-ink:#2a1a06;--bad:#f07a7a}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bed);color:var(--ink);font:14px/1.45 "Instrument Sans",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+  button,input{font:inherit;color:inherit}
+  button{cursor:pointer;background:none;border:0}
+  button:focus-visible,a:focus-visible{outline:2px solid var(--marker);outline-offset:2px}
+  a{color:inherit}
+  header{display:flex;align-items:baseline;gap:18px;padding:22px 32px 10px;border-bottom:1px solid var(--line)}
+  header h1{margin:0;font-size:20px;font-weight:600}
+  header .count{color:var(--ink-3)}
+  header .grow{flex:1}
+  .btn{background:var(--bed-2);border:1px solid var(--line-2);border-radius:8px;padding:8px 14px;font-weight:600;text-decoration:none;display:inline-block}
+  .btn.primary{background:var(--marker);color:var(--marker-ink);border-color:var(--marker)}
+  .btn.danger:hover{color:var(--bad);border-color:var(--bad)}
+  main{padding:8px 32px 60px;max-width:1500px}
+  section.family{margin:26px 0 0}
+  section.family h2{margin:0 0 6px;font-size:15px;font-weight:600;color:var(--ink-2)}
+  .tlwrap{overflow-x:auto;background:var(--bed-2);border:1px solid var(--line);border-radius:10px;padding:6px 8px;margin-bottom:14px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+  .card.variant{border-color:var(--line-2)}
+  .card .pic{aspect-ratio:4/3;background:#15181c;position:relative;display:block}
+  .card .pic img{width:100%;height:100%;object-fit:cover;display:block}
+  .card .pic .posed{position:absolute;right:8px;top:8px;background:rgba(23,26,30,.8);color:var(--ink-2);font-size:11px;padding:2px 7px;border-radius:999px;border:1px solid var(--line-2)}
+  .card .body{padding:10px 12px 12px;display:flex;flex-direction:column;gap:4px;flex:1}
+  .card .nm{font-weight:600;font-size:15px}
+  .card .meta{color:var(--ink-3);font-size:12.5px}
+  .card .lin{color:var(--ink-2);font-size:12.5px}
+  .card .last{color:var(--ink-2);font-size:13px;flex:1}
+  .card .row{display:flex;gap:6px;margin-top:8px;align-items:center}
+  .card .row .grow{flex:1}
+  .card .row button,.card .row a{font-size:13px;padding:6px 10px;border-radius:7px;border:1px solid var(--line-2);text-decoration:none}
+  .card .row a.open{background:var(--marker);color:var(--marker-ink);border-color:var(--marker);font-weight:600}
+  .card .row button.del{color:var(--ink-3)}
+  .card .row button.del:hover{color:var(--bad);border-color:var(--bad)}
+  #trash{margin-top:44px;border-top:1px solid var(--line);padding-top:18px}
+  #trash h2{margin:0 0 10px;font-size:15px;font-weight:600;color:var(--ink-2);display:flex;align-items:center;gap:14px}
+  #trash h2 .grow{flex:1}
+  .tr{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;background:var(--bed-2);margin-bottom:6px;font-size:13px}
+  .tr .k{color:var(--ink-3)}
+  .tr button{padding:4px 10px;border:1px solid var(--line-2);border-radius:6px;font-size:12.5px}
+  #empty{color:var(--ink-3);padding:60px 0;text-align:center}
+  #msg{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line-2);padding:8px 14px;border-radius:999px;opacity:0;transition:opacity .15s;pointer-events:none}
+  #msg.on{opacity:1}
+  #msg.bad{border-color:var(--bad);color:var(--bad)}
+</style>
+</head>
+<body>
+<header><h1>Library</h1><span class="count" id="count"></span><span class="grow"></span><a class="btn" href="/reference.html">Materials</a><a class="btn" href="/printers.html">Printers</a><a class="btn" href="/">Studio</a><a class="btn primary" href="/?new=1">New part</a></header>
+<main id="main"></main>
+<div id="msg" role="status"></div>
+<script type="module">
+import { drawTimeline, TIMELINE_CSS } from './timeline.js';
+document.head.insertAdjacentHTML('beforeend', `<style>${TIMELINE_CSS}</style>`);
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const tag = v => `v${String(v).padStart(3, '0')}`;
+let msgT; function say(t, bad) { const m = $('#msg'); m.textContent = t; m.classList.toggle('bad', !!bad); m.classList.add('on'); clearTimeout(msgT); msgT = setTimeout(() => m.classList.remove('on'), 3500); }
+
+async function load() {
+  const fam = await (await fetch('/api/family')).json();
+  const trash = await (await fetch('/api/trash')).json();
+  const byName = Object.fromEntries(fam.nodes.map(n => [n.name, n]));
+  const kids = {}; fam.edges.forEach(e => (kids[e.parent] ||= []).push(e));
+  const roots = fam.nodes.filter(n => !n.lineage);
+  $('#count').textContent = `${fam.nodes.length} part${fam.nodes.length === 1 ? '' : 's'} · ${fam.nodes.reduce((a, n) => a + n.versions, 0)} versions`;
+  const main = $('#main'); main.innerHTML = '';
+  if (!roots.length) main.innerHTML = '<div id="empty">Nothing here yet. Start with <a href="/?new=1">a new part</a>.</div>';
+  for (const r of roots) {
+    const members = []; const walk = n => { members.push(n); (kids[n.name] || []).forEach(e => byName[e.child] && walk(byName[e.child])); }; walk(r);
+    const sec = document.createElement('section'); sec.className = 'family';
+    sec.innerHTML = `<h2>${esc(r.name.replace(/_/g, ' '))}${members.length > 1 ? ` <span style="color:var(--ink-3);font-weight:400">· ${members.length - 1} variant${members.length > 2 ? 's' : ''}</span>` : ''}</h2>
+      ${members.length > 1 || r.versions > 1 ? '<div class="tlwrap"></div>' : ''}<div class="grid"></div>`;
+    main.appendChild(sec);
+    const tl = sec.querySelector('.tlwrap'); if (tl) drawTimeline(tl, { nodes: members, edges: fam.edges.filter(e => byName[e.child] && members.includes(byName[e.child])) }, { roots: [r], onPick: (p, v) => location.href = `/?part=${p}${v ? '&v=' + v : ''}` });
+    const grid = sec.querySelector('.grid');
+    for (const n of members) {
+      const last = n.latest, lin = n.lineage;
+      const c = document.createElement('div'); c.className = 'card' + (lin ? ' variant' : '');
+      c.innerHTML = `<a class="pic" href="/?part=${n.name}"><img src="${n.thumb}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">${n.posed ? '<span class="posed">your view</span>' : ''}</a>
+        <div class="body"><div class="nm">${esc(n.name.replace(/_/g, ' '))}</div>
+        <div class="meta">${n.versions} version${n.versions === 1 ? '' : 's'}${last ? ` · ${last.mass_g_pla} g · ${last.envelope.map(x => x.toFixed(0)).join('×')} mm · ${last.ts.slice(0, 10)}` : ''}</div>
+        ${lin ? `<div class="lin">${lin.mode === 'derive' ? 'derives from' : 'copied from'} ${esc(lin.parent.replace(/_/g, ' '))} ${tag(lin.from_version)}${lin.note ? ' — ' + esc(lin.note) : ''}</div>` : ''}
+        <div class="last">${last ? esc(last.message) : 'not built yet'}</div>
+        <div class="row"><a class="open" href="/?part=${n.name}">Open</a><button class="ren" title="Rename">Rename</button>${lin?.mode === 'derive' ? `<button class="detach" title="Make it independent of its base">Detach</button>` : ''}<span class="grow"></span><button class="del">Delete</button></div></div>`;
+      c.querySelector('.del').onclick = async () => {
+        const derived = (kids[n.name] || []).filter(e => e.mode === 'derive').map(e => e.child);
+        let q = `Move "${n.name}" to the trash? You can restore it from the bottom of this page.`;
+        if (derived.length) q += `\n\n${derived.join(', ')} derive from it — they'll be detached first so they keep working.`;
+        if (!confirm(q)) return;
+        const r = await fetch(`/api/parts/${n.name}?detach_children=${derived.length ? 1 : 0}`, { method: 'DELETE' });
+        if (r.ok) { say(`Trashed ${n.name}`); load(); } else say((await r.json()).detail || 'Delete failed', true);
+      };
+      c.querySelector('.ren').onclick = async () => {
+        const v = prompt(`Rename "${n.name}" (letters, digits, underscores):`, n.name); if (!v || v.trim() === n.name) return;
+        const r = await fetch(`/api/parts/${n.name}/rename`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ new_name: v.trim() }) });
+        if (r.ok) { say('Renamed'); load(); } else say((await r.json()).detail || 'Rename failed', true);
+      };
+      c.querySelector('.detach')?.addEventListener('click', async () => {
+        if (!confirm(`Detach "${n.name}" from ${lin.parent}? It keeps a snapshot of the base's code and stops following changes to it.`)) return;
+        const r = await fetch(`/api/parts/${n.name}/detach`, { method: 'POST' });
+        if (r.ok) { say(`${n.name} is now independent`); load(); } else say((await r.json()).detail || 'Detach failed', true);
+      });
+      grid.appendChild(c);
+    }
+  }
+  const t = document.createElement('section'); t.id = 'trash';
+  t.innerHTML = `<h2>Trash <span style="color:var(--ink-3);font-weight:400">${trash.length ? trash.length : 'empty'}</span><span class="grow"></span>${trash.length ? '<button class="btn danger" id="empty-trash">Empty trash</button>' : ''}</h2>` +
+    trash.map(x => `<div class="tr"><span>${x.kind === 'part' ? `part <b>${esc(x.name)}</b>` : `version <b>${esc(x.tag)}</b> of ${esc(x.name)}`} <span class="k">· ${x.ts.slice(0, 16).replace('T', ' ')}</span></span><button data-restore="${x.id}">Restore</button><button data-purge="${x.id}" style="color:var(--ink-3)">Delete forever</button></div>`).join('');
+  main.appendChild(t);
+  t.querySelectorAll('[data-restore]').forEach(b => b.onclick = async () => { const r = await fetch(`/api/trash/${b.dataset.restore}/restore`, { method: 'POST' }); if (r.ok) { say('Restored'); load(); } else say((await r.json()).detail || 'Restore failed', true); });
+  t.querySelectorAll('[data-purge]').forEach(b => b.onclick = async () => { if (!confirm('Delete forever? This cannot be undone.')) return; await fetch(`/api/trash/${b.dataset.purge}`, { method: 'DELETE' }); load(); });
+  t.querySelector('#empty-trash')?.addEventListener('click', async () => { if (!confirm(`Permanently delete everything in the trash (${trash.length} item${trash.length === 1 ? '' : 's'})?`)) return; await fetch('/api/trash', { method: 'DELETE' }); load(); });
+}
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "rows": 4,
+  "cols": 6,
+  "pitch": 18.0,
+  "row_pitch": 0.0,
+  "hole_d": 11.8,
+  "hole_depth": 26.0,
+  "floor": 2.0,
+  "drain_d": 5.0,
+  "margin": 8.0,
+  "corner_r": 6.0,
+  "top_chamfer": 1.5,
+  "bottom_chamfer": 0.8,
+  "hole_chamfer": 1.2,
+  "cone_h": 0.0,
+  "cone_tip_d": 4.0,
+  "grip_r": 7.0,
+  "grip_bite": 3.5,
+  "label_size": 4.0,
+  "label_depth": 0.5,
+  "label_side": -1
+}

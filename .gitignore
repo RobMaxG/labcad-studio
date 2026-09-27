@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+parts/*/session.json
+parts/_trash/
+parts/*/thumb.jpg
+parts/*/pose.json
+parts/*/shots/
+parts/*/versions/*_drawing.svg

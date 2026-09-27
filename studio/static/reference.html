@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LabCAD Materials</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27%3E%3Cpath d=%27M3 8 12 3l9 5-9 5z%27 fill=%27%239fc0e8%27/%3E%3Cpath d=%27M3 8v8l9 5V13z%27 fill=%27%236f8db0%27/%3E%3Cpath d=%27M21 8v8l-9 5V13z%27 fill=%27%23ff9f43%27/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+<style>
+  :root{--bed:#1d2025;--bed-2:#171a1e;--panel:#22262c;--line:#30353d;--line-2:#3c424b;--ink:#e8e3da;--ink-2:#a9aeb6;--ink-3:#6f757f;--marker:#ff9f43;--marker-ink:#2a1a06;--bad:#f07a7a;--ok:#7bc48b}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bed);color:var(--ink);font:14px/1.45 "Instrument Sans",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+  button,input{font:inherit;color:inherit}
+  a{color:inherit}
+  a:focus-visible,button:focus-visible{outline:2px solid var(--marker);outline-offset:2px}
+  .btn{background:var(--bed-2);border:1px solid var(--line-2);border-radius:8px;padding:8px 14px;font-weight:600;text-decoration:none;display:inline-block}
+  .btn.primary{background:var(--marker);color:var(--marker-ink);border-color:var(--marker)}
+  header{display:flex;align-items:baseline;gap:18px;padding:22px 32px 10px;border-bottom:1px solid var(--line)}
+  header h1{margin:0;font-size:20px;font-weight:600}
+  header .sub{color:var(--ink-3)}
+  header .grow{flex:1}
+  main{padding:18px 32px 80px;max-width:1180px}
+  .lead{color:var(--ink-2);max-width:70ch;margin:0 0 20px}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;margin:0 0 18px;color:var(--ink-2);font-size:13px}
+  .legend .k{display:inline-flex;align-items:center;gap:7px}
+  .chip{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;font-size:13px;font-weight:700}
+  .chip.ok{background:color-mix(in srgb,var(--ok) 20%,transparent);color:var(--ok)}
+  .chip.warn{background:color-mix(in srgb,var(--marker) 20%,transparent);color:var(--marker)}
+  .chip.bad{background:color-mix(in srgb,var(--bad) 20%,transparent);color:var(--bad)}
+  h2{font-size:15px;font-weight:600;color:var(--ink-2);margin:34px 0 12px}
+  /* matrix */
+  .tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--bed-2)}
+  table{border-collapse:separate;border-spacing:0;width:100%;min-width:720px}
+  th,td{padding:9px 10px;text-align:center;white-space:nowrap}
+  thead th{position:sticky;top:0;background:var(--panel);z-index:2;font-weight:600;font-size:13px;border-bottom:1px solid var(--line)}
+  thead th:first-child{text-align:left;z-index:3}
+  tbody th{position:sticky;left:0;background:var(--bed-2);text-align:left;font-weight:500;color:var(--ink);z-index:1;border-right:1px solid var(--line)}
+  tbody tr:nth-child(even) th{background:#1a1d22}
+  tbody tr:nth-child(even) td{background:rgba(255,255,255,.015)}
+  tbody tr:hover td,tbody tr:hover th{background:rgba(159,192,232,.06)}
+  td .cell{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:7px;font-size:14px;font-weight:700;margin:0 auto}
+  td.ok .cell{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+  td.warn .cell{background:color-mix(in srgb,var(--marker) 16%,transparent);color:var(--marker)}
+  td.bad .cell{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+  sup{color:var(--ink-3);font-size:10px;font-weight:700;margin-left:2px}
+  tbody th .grp{color:var(--ink-3);font-size:11px;text-transform:uppercase;letter-spacing:.04em;display:block;margin-top:10px;font-weight:600}
+  /* notes */
+  ol.notes{margin:14px 0 0;padding-left:22px;color:var(--ink-2);max-width:78ch}
+  ol.notes li{margin:5px 0}
+  /* cards */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .card h3{margin:0 0 2px;font-size:15px;font-weight:600}
+  .card .verdict{font-size:12.5px;font-weight:600;margin-bottom:8px}
+  .card.pp{border-color:color-mix(in srgb,var(--ok) 40%,var(--line))}
+  .card .verdict.good{color:var(--ok)}
+  .card .verdict.mid{color:var(--marker)}
+  .card .verdict.poor{color:var(--bad)}
+  .card p{margin:0;color:var(--ink-2);font-size:13px}
+  .card p+p{margin-top:6px}
+  /* callouts */
+  .over{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+  .over .box{background:var(--bed-2);border:1px solid var(--line);border-left:3px solid var(--marker);border-radius:10px;padding:13px 15px}
+  .over .box h3{margin:0 0 5px;font-size:14px;font-weight:600}
+  .over .box p{margin:0;color:var(--ink-2);font-size:13px}
+  .fine{color:var(--ink-3);font-size:12.5px;margin-top:34px;border-top:1px solid var(--line);padding-top:14px;max-width:80ch}
+</style>
+</head>
+<body>
+<header>
+  <h1>Materials</h1>
+  <span class="sub">solvent &amp; sterilisation compatibility for printable parts</span>
+  <span class="grow"></span>
+  <a class="btn" href="/">Studio</a>
+  <a class="btn" href="/library.html">Library</a>
+</header>
+<main>
+  <p class="lead">How common FDM filaments (and cured SLA resin) hold up against the solvents and cleaning we
+  actually use at the bench. Ratings are <em>general guidance</em> for room-temperature, short-to-moderate
+  exposure — real behaviour is grade- and additive-dependent, so treat this as where to start, not a spec.
+  When a part matters, confirm with a coupon soak.</p>
+
+  <div class="legend">
+    <span class="k"><span class="chip ok">✓</span> resistant — fine for contact/immersion</span>
+    <span class="k"><span class="chip warn">~</span> crazes, swells or softens — test first</span>
+    <span class="k"><span class="chip bad">✕</span> attacked, dissolves or fails</span>
+  </div>
+
+  <div class="tblwrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Solvent / reagent</th>
+          <th>PLA</th><th>PETG</th><th>ABS / ASA</th><th>Nylon (PA)</th><th>PC</th><th>PP</th><th>Resin<sup>†</sup></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><th>Water / aq. buffers</th>
+          <td class="warn"><span class="cell">~<sup>1</sup></span></td><td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td><td class="warn"><span class="cell">~<sup>2</sup></span></td><td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td></tr>
+        <tr><th>Ethanol / IPA</th>
+          <td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td></tr>
+        <tr><th>Methanol</th>
+          <td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td><td class="warn"><span class="cell">~</span></td><td class="ok"><span class="cell">✓</span></td><td class="warn"><span class="cell">~</span></td><td class="ok"><span class="cell">✓</span></td><td class="warn"><span class="cell">~</span></td></tr>
+        <tr><th>Acetone</th>
+          <td class="warn"><span class="cell">~</span></td><td class="warn"><span class="cell">~</span></td><td class="bad"><span class="cell">✕</span></td><td class="ok"><span class="cell">✓</span></td><td class="bad"><span class="cell">✕</span></td><td class="ok"><span class="cell">✓</span></td><td class="warn"><span class="cell">~</span></td></tr>
+        <tr><th>Ethyl acetate</th>
+          <td class="bad"><span class="cell">✕</span></td><td class="warn"><span class="cell">~</span></td><td class="bad"><span class="cell">✕</span></td><td class="ok"><span class="cell">✓</span></td><td class="bad"><span class="cell">✕</span></td><td class="ok"><span class="cell">✓</span></td><td class="bad"><span class="cell">✕</span></td></tr>
+        <tr><th>DCM / chloroform</th>
+          <td class="bad"><span class="cell">✕</span></td><td class="bad"><span class="cell">✕</span></td><td class="bad"><span class="cell">✕</span></td><td class="ok"><span class="cell">✓</span></td><td class="bad"><span class="cell">✕<sup>3</sup></span></td><td class="warn"><span class="cell">~<sup>4</sup></span></td><td class="bad"><span class="cell">✕</span></td></tr>
+        <tr><th>THF</th>
+          <td class="bad"><span class="cell">✕</span></td><td class="bad"><span class="cell">✕</span></td><td class="bad"><span class="cell">✕</span></td><td class="ok"><span class="cell">✓</span></td><td class="bad"><span class="cell">✕</span></td><td class="warn"><span class="cell">~</span></td><td class="bad"><span class="cell">✕</span></td></tr>
+        <tr><th>Toluene / xylene</th>
+          <td class="warn"><span class="cell">~</span></td><td class="warn"><span class="cell">~</span></td><td class="bad"><span class="cell">✕</span></td><td class="ok"><span class="cell">✓</span></td><td class="bad"><span class="cell">✕</span></td><td class="warn"><span class="cell">~<sup>4</sup></span></td><td class="warn"><span class="cell">~</span></td></tr>
+        <tr><th>Hexane / heptane</th>
+          <td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td><td class="warn"><span class="cell">~</span></td><td class="ok"><span class="cell">✓</span></td></tr>
+        <tr><th>DMSO / DMF</th>
+          <td class="warn"><span class="cell">~</span></td><td class="warn"><span class="cell">~</span></td><td class="warn"><span class="cell">~</span></td><td class="ok"><span class="cell">✓</span></td><td class="warn"><span class="cell">~</span></td><td class="ok"><span class="cell">✓</span></td><td class="warn"><span class="cell">~</span></td></tr>
+        <tr><th>Dilute acids</th>
+          <td class="warn"><span class="cell">~</span></td><td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td><td class="bad"><span class="cell">✕<sup>5</sup></span></td><td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td></tr>
+        <tr><th>Conc. mineral acids</th>
+          <td class="bad"><span class="cell">✕</span></td><td class="warn"><span class="cell">~</span></td><td class="warn"><span class="cell">~</span></td><td class="bad"><span class="cell">✕</span></td><td class="warn"><span class="cell">~</span></td><td class="warn"><span class="cell">~</span></td><td class="warn"><span class="cell">~</span></td></tr>
+        <tr><th>Strong base (NaOH / KOH)</th>
+          <td class="bad"><span class="cell">✕<sup>6</sup></span></td><td class="warn"><span class="cell">~</span></td><td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td><td class="bad"><span class="cell">✕<sup>7</sup></span></td><td class="ok"><span class="cell">✓</span></td><td class="warn"><span class="cell">~</span></td></tr>
+        <tr><th>Bleach / H₂O₂ (dilute)</th>
+          <td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td><td class="warn"><span class="cell">~</span></td><td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td><td class="ok"><span class="cell">✓</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <ol class="notes">
+    <li><b>PLA + water:</b> hydrolyses — hot water/steam and prolonged aqueous contact break the ester backbone. Fine cold and brief.</li>
+    <li><b>Nylon + water:</b> not chemical attack — it <em>absorbs</em> water, swells and loses stiffness and dimensional accuracy. Death to a tight tolerance.</li>
+    <li><b>DCM</b> is a casting solvent for polycarbonate. It will wreck PC.</li>
+    <li><b>PP</b> shrugs off aromatics/chlorinated solvents cold, but swells in hot ones.</li>
+    <li><b>Formic acid</b> dissolves nylon outright (it's used as a PA solvent); concentrated mineral acids also degrade it.</li>
+    <li><b>Strong base</b> saponifies PLA's ester bonds — fast.</li>
+    <li><b>Base hydrolyses polycarbonate</b> — PC's big weakness, despite its heat resistance.</li>
+    <li><sup>†</sup> <b>Resin</b> = fully post-cured SLA/DLP acrylate. Behaviour varies wildly by resin; uncured monomer leaching is a real bio/cytotox concern — avoid for reagent contact unless the resin is specifically rated for it.</li>
+  </ol>
+
+  <h2>Which filament, at a glance</h2>
+  <div class="grid">
+    <div class="card pp">
+      <h3>PP — polypropylene</h3>
+      <div class="verdict good">Chemical champion</div>
+      <p>What your reagent bottles and Falcon tubes are made of. Near-bulletproof against acids, bases, ketones, alcohols. The catch: a pig to print — warps and won't stick. Worth taming for aggressive solvents.</p>
+    </div>
+    <div class="card">
+      <h3>Nylon (PA6 / PA12)</h3>
+      <div class="verdict good">Best-printing broad resistance</div>
+      <p>Laughs at acetone, esters, ethers, aromatics. Enemies: acids, and its own water uptake — dry the filament, and don't trust it for wet-dimensional parts.</p>
+    </div>
+    <div class="card">
+      <h3>PETG</h3>
+      <div class="verdict good">Aqueous-work sweet spot</div>
+      <p>Prints easily, handles buffers, alcohols and dilute acids fine. Keep it away from ketones and chlorinated solvents. My default for anything mostly-water.</p>
+    </div>
+    <div class="card">
+      <h3>PLA</h3>
+      <div class="verdict mid">Dry jigs only</div>
+      <p>Stiff and convenient, chemically the most fragile: esters, chlorinated solvents, base and even warm water get it. Great for fixtures and racks that stay dry; poor for wet chemistry.</p>
+    </div>
+    <div class="card">
+      <h3>ABS / ASA</h3>
+      <div class="verdict poor">Pick for heat, not chemistry</div>
+      <p>Broad organic-solvent weakness (acetone dissolves it). Choose for mechanical/thermal reasons; ASA adds UV resistance for outdoor/window use.</p>
+    </div>
+    <div class="card">
+      <h3>PC — polycarbonate</h3>
+      <div class="verdict poor">Strong &amp; hot, chemically soft</div>
+      <p>High Tg (~145 °C) and tough, but dissolved by chlorinated solvents and hydrolysed by base. Great structural part, poor solvent barrier.</p>
+    </div>
+  </div>
+
+  <h2>Three things that override the whole table</h2>
+  <div class="over">
+    <div class="box">
+      <h3>Autoclaving kills almost all of them</h3>
+      <p>121 °C steam deforms PLA (~60 °C), PETG (~80 °C), ABS/ASA (~105 °C). PC and some nylons survive the heat but not necessarily the steam hydrolysis. Need sterile? Plan for chemical (EtOH/bleach) or gas sterilisation, or design for single-use.</p>
+    </div>
+    <div class="box">
+      <h3>FDM prints are porous</h3>
+      <p>Layer lines wick solvent and trap contamination even when the bulk polymer is "resistant." A chemically-fine part can still be impossible to clean, may leach slowly, or harbour cross-contamination. Anneal, coat, or vapour-smooth anything that matters.</p>
+    </div>
+    <div class="box">
+      <h3>Colour &amp; additives shift the answer</h3>
+      <p>Pigments, plasticisers and fillers change chemical resistance and glass transition. Two spools of "PETG" aren't identical. For a critical part, soak a coupon of the exact spool before you commit the print.</p>
+    </div>
+  </div>
+
+  <p class="fine">General guidance for orientation, not a chemical-resistance spec — assembled from filament behaviour at
+  the bench, room temperature, short-to-moderate exposure. Grade, colour, temperature and immersion time all move the
+  line. For anything load-bearing, reagent-contact or long-immersion, verify with a coupon of the actual material.
+</p>
+</main>
+</body>
+</html>

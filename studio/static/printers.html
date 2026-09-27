@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LabCAD Printers</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27%3E%3Crect x=%273%27 y=%274%27 width=%2718%27 height=%2712%27 rx=%271%27 fill=%27%236f8db0%27/%3E%3Crect x=%277%27 y=%2714%27 width=%2710%27 height=%276%27 fill=%27%23ff9f43%27/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+<style>
+  :root{--bed:#1d2025;--bed-2:#171a1e;--panel:#22262c;--line:#30353d;--line-2:#3c424b;--ink:#e8e3da;--ink-2:#a9aeb6;--ink-3:#6f757f;--marker:#ff9f43;--marker-ink:#2a1a06;--ok:#8fd19e;--warn:#e8c37a;--bad:#f07a7a}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bed);color:var(--ink);font:14px/1.45 "Instrument Sans",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+  button,input,select,textarea{font:inherit;color:inherit}
+  button{cursor:pointer;background:none;border:0}
+  button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--marker);outline-offset:2px}
+  a{color:inherit}
+  header{display:flex;align-items:baseline;gap:18px;padding:22px 32px 10px;border-bottom:1px solid var(--line)}
+  header h1{margin:0;font-size:20px;font-weight:600}
+  header .count{color:var(--ink-3)}
+  header .grow{flex:1}
+  .btn{background:var(--bed-2);border:1px solid var(--line-2);border-radius:8px;padding:8px 14px;font-weight:600;text-decoration:none;display:inline-block}
+  .btn.primary{background:var(--marker);color:var(--marker-ink);border-color:var(--marker)}
+  main{padding:18px 32px 60px;max-width:1500px}
+  .lede{color:var(--ink-2);max-width:78ch;margin:0 0 20px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+  .card.isdefault{border-color:var(--marker)}
+  .card h2{margin:0;font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .pill{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-2);font-weight:600;letter-spacing:.04em}
+  .pill.def{background:var(--marker);color:var(--marker-ink);border-color:var(--marker)}
+  .pill.unver{border-color:var(--warn);color:var(--warn)}
+  .where{color:var(--ink-3);font-size:13px}
+  dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:13px}
+  dt{color:var(--ink-3)} dd{margin:0}
+  .note{color:var(--ink-2);font-size:12.5px;border-left:2px solid var(--line-2);padding-left:10px}
+  .parts{font-size:12.5px;display:flex;flex-direction:column;gap:3px}
+  .parts .p{display:flex;gap:8px;align-items:baseline}
+  .parts .p a{color:var(--ink-2);text-decoration:none}
+  .parts .p a:hover{color:var(--ink)}
+  .fit{font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;border:1px solid}
+  .fit.fits{color:var(--ok);border-color:rgba(143,209,158,.5)}
+  .fit.rotate,.fit.diagonal{color:var(--warn);border-color:rgba(232,195,122,.5)}
+  .fit.too_big{color:var(--bad);border-color:rgba(240,122,122,.5)}
+  .row{display:flex;gap:8px;align-items:center;margin-top:auto;padding-top:4px}
+  .row .grow{flex:1}
+  .row button{font-size:13px;padding:6px 10px;border-radius:7px;border:1px solid var(--line-2)}
+  .row button.del{color:var(--ink-3)}
+  .row button.del:hover{color:var(--bad);border-color:var(--bad)}
+  #editor{position:fixed;inset:0;background:rgba(10,12,14,.66);display:none;place-items:center;padding:24px;z-index:9}
+  #editor.on{display:grid}
+  #editor form{background:var(--panel);border:1px solid var(--line-2);border-radius:14px;width:min(860px,100%);max-height:90vh;overflow:auto;padding:20px 22px 18px;box-shadow:0 24px 70px rgba(0,0,0,.5)}
+  #editor h2{margin:0 0 4px;font-size:17px}
+  #editor .sub{color:var(--ink-3);font-size:13px;margin:0 0 16px}
+  fieldset{border:0;border-top:1px solid var(--line);margin:0 0 14px;padding:12px 0 0}
+  legend{padding:0 8px 0 0;color:var(--ink-3);font-size:12px;letter-spacing:.1em;font-weight:600}
+  .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 14px}
+  label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--ink-2)}
+  label span small{color:var(--ink-3);font-weight:400}
+  input,select,textarea{background:var(--bed-2);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%}
+  textarea{min-height:64px;resize:vertical}
+  label.check{flex-direction:row;align-items:center;gap:8px}
+  label.check input{width:auto;accent-color:var(--marker)}
+  .frow{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}
+  .hint{color:var(--ink-3);font-size:12px;margin:2px 0 0}
+  .fdm-only.hide{display:none}
+  #msg{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line-2);padding:8px 14px;border-radius:999px;opacity:0;transition:opacity .15s;pointer-events:none;z-index:10}
+  #msg.on{opacity:1}
+  #msg.bad{border-color:var(--bad);color:var(--bad)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Printers</h1><span class="count" id="count"></span><span class="grow"></span>
+  <a class="btn" href="/library.html">Library</a><a class="btn" href="/">Studio</a>
+  <button class="btn primary" id="add">Add a printer</button>
+</header>
+<main>
+  <p class="lede">Each profile owns the numbers that change a part: bed size, how much a hole shrinks, the clearance you need for a slip fit, the tolerance you can actually hold. Parts are designed against whichever profile they target &mdash; including send-off services, which have their own rules.</p>
+  <div class="grid" id="grid"></div>
+</main>
+
+<div id="editor" role="dialog" aria-modal="true" aria-label="Printer profile">
+  <form id="form">
+    <h2 id="ed-title">Printer</h2>
+    <p class="sub" id="ed-sub"></p>
+    <fieldset><legend>IDENTITY</legend><div class="fields">
+      <label><span>Name</span><input name="name" required placeholder="Prusa MK4"></label>
+      <label><span>Id <small>folder-safe</small></span><input name="key" required pattern="[a-z][a-z0-9_]*" placeholder="prusa_mk4"></label>
+      <label><span>Kind</span><select name="kind"><option value="fdm">FDM (filament)</option><option value="resin">Resin (SLA/DLP)</option><option value="service">Send-off service</option></select></label>
+      <label><span>Where</span><input name="where" placeholder="home / lab / vendor"></label>
+      <label><span>Process <small>services</small></span><input name="process" placeholder="SLS PA12, MJF, ..."></label>
+    </div></fieldset>
+    <fieldset><legend>BUILD VOLUME (MM)</legend><div class="fields">
+      <label><span>X</span><input name="bed_x" type="number" step="1" min="1" required></label>
+      <label><span>Y</span><input name="bed_y" type="number" step="1" min="1" required></label>
+      <label><span>Z</span><input name="bed_z" type="number" step="1" min="1" required></label>
+      <label class="fdm-only"><span>Nozzle</span><input name="nozzle" type="number" step="0.05" min="0"></label>
+      <label><span>Layer height</span><input name="layer" type="number" step="0.01" min="0"></label>
+    </div><p class="hint">Usable volume, not the marketing number &mdash; subtract anything a clip or purge tower steals.</p></fieldset>
+    <fieldset><legend>FIT &amp; TOLERANCE (MM)</legend><div class="fields">
+      <label><span>Hole shrink <small>undersize</small></span><input name="hole_shrink" type="number" step="0.05"></label>
+      <label><span>Slip clearance</span><input name="clearance_slip" type="number" step="0.05"></label>
+      <label><span>Press clearance</span><input name="clearance_press" type="number" step="0.05"></label>
+      <label><span>Tolerance &plusmn;</span><input name="xy_tolerance" type="number" step="0.05"></label>
+      <label><span>Min wall</span><input name="min_wall" type="number" step="0.1"></label>
+      <label><span>Min feature</span><input name="min_feature" type="number" step="0.1"></label>
+      <label><span>Max overhang &deg;</span><input name="max_overhang" type="number" step="5"></label>
+    </div><p class="hint">Print a test coupon once and these stop being guesses. Hole shrink is the number that decides whether a tube drops in or jams.</p></fieldset>
+    <fieldset><legend>MATERIALS &amp; NOTES</legend><div class="fields">
+      <label style="grid-column:1/-1"><span>Materials <small>comma separated</small></span><input name="materials" placeholder="PLA, PETG, ABS"></label>
+      <label><span>Lead time <small>services</small></span><input name="lead_time" placeholder="7-10 days"></label>
+      <label><span>Cost note <small>services</small></span><input name="cost_note" placeholder="~$18/part at qty 5"></label>
+    </div>
+    <label style="margin-top:10px"><span>Notes</span><textarea name="notes" placeholder="Anything Claude should design around: quirks, a bed area that never sticks, the fact that this one lives at work and prints overnight."></textarea></label>
+    <label class="check" style="margin-top:10px"><input type="checkbox" name="verified"><span>I have checked these numbers (removes the "unverified" flag)</span></label>
+    </fieldset>
+    <div class="frow"><button type="button" class="btn" id="ed-cancel">Cancel</button><button type="submit" class="btn primary">Save printer</button></div>
+  </form>
+</div>
+<div id="msg" role="status"></div>
+
+<script type="module">
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const NUM = ["nozzle", "layer", "hole_shrink", "xy_tolerance", "clearance_slip", "clearance_press", "min_wall", "min_feature", "max_overhang"];
+const FITLBL = { fits: "fits", rotate: "fits turned", diagonal: "fits diagonally", too_big: "too big", unknown: "—" };
+let DATA = { printers: {}, default: null }, PARTS = [], FITS = {};
+let msgT; function say(t, bad) { const m = $('#msg'); m.textContent = t; m.classList.toggle('bad', !!bad); m.classList.add('on'); clearTimeout(msgT); msgT = setTimeout(() => m.classList.remove('on'), 3500); }
+
+async function load() {
+  DATA = await (await fetch('/api/printers')).json();
+  PARTS = await (await fetch('/api/parts')).json();
+  FITS = Object.fromEntries(await Promise.all(PARTS.filter(p => p.versions).map(async p =>
+    [p.name, await (await fetch(`/api/parts/${p.name}/fit`)).json()])));
+  const n = Object.keys(DATA.printers).length;
+  $('#count').textContent = `${n} profile${n === 1 ? '' : 's'}`;
+  $('#grid').innerHTML = '';
+  for (const [key, p] of Object.entries(DATA.printers)) {
+    const isDef = DATA.default === key;
+    const mine = PARTS.filter(x => x.versions && (FITS[x.name]?.key || DATA.default) === key);
+    const c = document.createElement('div'); c.className = 'card' + (isDef ? ' isdefault' : '');
+    c.innerHTML = `<h2>${esc(p.name)}${isDef ? '<span class="pill def">default</span>' : ''}<span class="pill">${esc(p.kind)}</span>${p.verified ? '' : '<span class="pill unver" title="LabCAD seeded these numbers - check them">unverified</span>'}</h2>
+      <div class="where">${[p.where, p.process].filter(Boolean).map(esc).join(' · ') || '&nbsp;'}</div>
+      <dl>
+        <dt>build</dt><dd>${p.bed.map(v => Math.round(v)).join(' × ')} mm${p.nozzle ? ` · ⌀${p.nozzle} nozzle` : ''}${p.layer ? ` · ${p.layer} layer` : ''}</dd>
+        <dt>fit</dt><dd>hole −${p.hole_shrink ?? '?'} · slip +${p.clearance_slip ?? '?'} · press +${p.clearance_press ?? '?'} mm</dd>
+        <dt>tolerance</dt><dd>±${p.xy_tolerance ?? '?'} mm · min wall ${p.min_wall ?? '?'} · overhang ${p.max_overhang ?? '?'}°</dd>
+        <dt>material</dt><dd>${esc((p.materials || []).join(', ')) || '—'}</dd>
+        ${p.lead_time || p.cost_note ? `<dt>supply</dt><dd>${esc([p.lead_time, p.cost_note].filter(Boolean).join(' · '))}</dd>` : ''}
+      </dl>
+      ${p.notes ? `<div class="note">${esc(p.notes)}</div>` : ''}
+      ${mine.length ? `<div class="parts">${mine.map(x => { const f = FITS[x.name] || {}; return `<div class="p"><a href="/?part=${x.name}">${esc(x.name.replace(/_/g, ' '))}</a><span class="fit ${f.status || 'unknown'}" title="${esc(f.how || '')}">${FITLBL[f.status] || '—'}</span></div>`; }).join('')}</div>` : '<div class="parts" style="color:var(--ink-3)">no parts targeting this one</div>'}
+      <div class="row">${isDef ? '' : '<button class="mkdef">Make default</button>'}<button class="edit">Edit</button><span class="grow"></span><button class="del">Delete</button></div>`;
+    c.querySelector('.edit').onclick = () => openEditor(key, p);
+    c.querySelector('.mkdef')?.addEventListener('click', async () => { await fetch(`/api/printers/${key}/default`, { method: 'POST' }); say(`${p.name} is the default`); load(); });
+    c.querySelector('.del').onclick = async () => {
+      if (!confirm(`Remove "${p.name}"? Parts targeting it fall back to the default.`)) return;
+      const r = await fetch(`/api/printers/${key}`, { method: 'DELETE' });
+      if (r.ok) { say('Removed'); load(); } else say((await r.json()).detail || 'Could not remove', true);
+    };
+    $('#grid').appendChild(c);
+  }
+}
+
+function openEditor(key, p) {
+  const f = $('#form'), isNew = !key;
+  $('#ed-title').textContent = isNew ? 'New printer' : p.name;
+  $('#ed-sub').textContent = isNew ? 'Numbers you are unsure of are fine - mark it unverified and fix it after a test print.'
+    : 'Changing these changes what Claude designs next, not what is already built.';
+  f.key.value = key || ''; f.key.readOnly = !isNew;
+  const v = p || {};
+  f.name.value = v.name || ''; f.kind.value = v.kind || 'fdm'; f.where.value = v.where || ''; f.process.value = v.process || '';
+  const bed = v.bed || [250, 210, 220]; f.bed_x.value = bed[0]; f.bed_y.value = bed[1]; f.bed_z.value = bed[2];
+  for (const n of NUM) f[n].value = v[n] ?? '';
+  f.materials.value = (v.materials || []).join(', '); f.lead_time.value = v.lead_time || ''; f.cost_note.value = v.cost_note || '';
+  f.notes.value = v.notes || ''; f.verified.checked = !!v.verified;
+  kindChanged();
+  $('#editor').classList.add('on'); setTimeout(() => f.name.focus(), 0);
+}
+function kindChanged() {
+  const fdm = $('#form').kind.value === 'fdm';
+  document.querySelectorAll('.fdm-only').forEach(el => el.classList.toggle('hide', !fdm));
+}
+$('#form').kind.onchange = kindChanged;
+$('#add').onclick = () => openEditor(null, null);
+$('#ed-cancel').onclick = () => $('#editor').classList.remove('on');
+$('#editor').onclick = e => { if (e.target === $('#editor')) $('#editor').classList.remove('on'); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('#editor').classList.remove('on'); });
+$('#form').onsubmit = async e => {
+  e.preventDefault();
+  const f = e.target, key = f.key.value.trim().toLowerCase().replace(/[ -]/g, '_');
+  const profile = { name: f.name.value.trim(), kind: f.kind.value, where: f.where.value.trim(), process: f.process.value.trim(),
+    bed: [f.bed_x.value, f.bed_y.value, f.bed_z.value].map(Number),
+    materials: f.materials.value, lead_time: f.lead_time.value.trim(), cost_note: f.cost_note.value.trim(),
+    notes: f.notes.value.trim(), verified: f.verified.checked };
+  for (const n of NUM) profile[n] = f[n].value === '' ? null : Number(f[n].value);
+  const r = await fetch(`/api/printers/${key}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ profile }) });
+  if (!r.ok) { say((await r.json()).detail || 'Could not save', true); return; }
+  $('#editor').classList.remove('on'); say(`Saved ${profile.name}`); load();
+};
+load();
+</script>
+</body>
+</html>

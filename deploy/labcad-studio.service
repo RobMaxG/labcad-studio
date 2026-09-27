@@ -1,0 +1,24 @@
+# LabCAD Studio — view / annotate / tweak printable parts and talk to Claude about them.
+# Template: replace every __LABCAD_DIR__ with the absolute path of this checkout (SETUP.md step 5 does it).
+#
+# Install:
+#   sed "s|__LABCAD_DIR__|$PWD|g" deploy/labcad-studio.service > ~/.config/systemd/user/labcad-studio.service
+#   systemctl --user daemon-reload && systemctl --user enable --now labcad-studio
+#
+# Listens on 127.0.0.1 only. The Studio can start Claude sessions that edit files and browse the web,
+# so don't widen --host to 0.0.0.0 unless the network in front of it is one you trust (e.g. a private VPN).
+[Unit]
+Description=LabCAD Studio — 3D part viewer + Claude feedback loop on :8505
+Documentation=file://__LABCAD_DIR__/SETUP.md
+
+[Service]
+Type=simple
+WorkingDirectory=__LABCAD_DIR__
+Environment=PYOPENGL_PLATFORM=egl
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=__LABCAD_DIR__/.venv/bin/uvicorn studio.server:app --host 127.0.0.1 --port 8505
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
