@@ -6,6 +6,7 @@ Old-school drafting look on purpose: bordered sheet with zone ticks, title block
 single-stroke lettering. Two themes in the SVG's own CSS (class "blueprint" | "paper").
 """
 import json, math, sys, time
+from math import pi
 from collections import Counter, defaultdict
 from pathlib import Path
 from build123d import *
@@ -58,7 +59,7 @@ def project(part, view):
 
 def holes(part):
     """Circular edges whose axis is Z, grouped by radius → [(radius, [centers (x,y)])], most-numerous first."""
-    groups = defaultdict(set)
+    groups, arcs = defaultdict(set), defaultdict(float)
     for e in part.edges().filter_by(GeomType.CIRCLE):
         try:
             ax = e.arc_center
@@ -69,7 +70,11 @@ def holes(part):
             continue
         if abs(n.normalized().Z) < 0.95:
             continue
-        groups[round(e.radius, 2)].add((round(ax.X, 2), round(ax.Y, 2)))
+        arcs[(round(ax.X, 2), round(ax.Y, 2), round(ax.Z, 2), round(e.radius, 2))] += e.length
+    # a hole is a full circle (OCC may split it at a seam, so sum the arcs); fillet arcs on corners never close
+    for (x, y, z, r), length in arcs.items():
+        if length >= 0.95 * 2 * pi * r:
+            groups[r].add((x, y))
     out = sorted(groups.items(), key=lambda kv: (-len(kv[1]), kv[0]))
     return [(r, sorted(c)) for r, c in out if len(c) >= 2][:2]
 
@@ -126,7 +131,7 @@ def fmt(v):
     return f"{v:.1f}".rstrip("0").rstrip(".") if abs(v - round(v)) > 0.04 else f"{round(v)}"
 
 
-def make_drawing(part, meta, out):
+def make_drawing(part, meta, out, comp=None):
     bb = part.bounding_box()
     L, W, H = bb.size.X, bb.size.Y, bb.size.Z
     gap_mm = max(L, W, H) * 0.3 + 12
@@ -200,19 +205,36 @@ def make_drawing(part, meta, out):
             chrome.append(f'<line class="border thin" x1="{MARGIN - 14}" y1="{y:.0f}" x2="{MARGIN}" y2="{y:.0f}"/><line class="border thin" x1="{SHEET_W - MARGIN}" y1="{y:.0f}" x2="{SHEET_W - MARGIN + 14}" y2="{y:.0f}"/>')
         chrome.append(f'<text class="zone" x="{MARGIN - 7}" y="{y - (SHEET_H - 2 * MARGIN) / 12 + 4:.0f}" text-anchor="middle">{z}</text>')
     tx, ty = SHEET_W - MARGIN - TITLE_W, SHEET_H - MARGIN - TITLE_H
+    is_asm = len(meta.get("components") or []) > 1
     try:
         import printers as _pr
         prf = _pr.prof(meta["part"])
-        fit = _pr.fit_check(meta["envelope"], part=meta["part"])
         tol = prf.get("xy_tolerance") or 0.2
         mat = (prf.get("materials") or ["PLA"])[0]
-        pr_txt = prf["name"].upper() + ("" if fit["status"] in ("fits", "unknown") else f" · {fit['status'].replace('_', ' ').upper()}")
+        if is_asm and not comp:
+            pr_txt = "ASSEMBLY · PRINT FROM COMPONENT SHEETS"
+        else:
+            fit = _pr.fit_check((comp or meta)["envelope"], part=meta["part"])
+            pr_txt = prf["name"].upper() + ("" if fit["status"] in ("fits", "unknown") else f" · {fit['status'].replace('_', ' ').upper()}")
     except Exception:
         tol, mat, pr_txt = 0.2, "PLA", "—"
-    rows = [("TITLE", meta["part"].replace("_", " ").upper()), ("DWG NO", f"{meta['part']}_{meta['tag']}"),
+    title = meta["part"].replace("_", " ").upper()
+    dwg = f"{meta['part']}_{meta['tag']}"
+    mass = meta.get("mass_g_pla", "?")
+    sheet = "1 OF 1"
+    if comp:
+        title = comp["label"].upper()
+        dwg += f"_{comp['name']}"
+        mass = comp.get("mass_g_pla", "?")
+        mat = (comp.get("filament") or mat).upper()
+        sheet = f"QTY {comp.get('qty', 1)} · OF {meta['part'].replace('_', ' ').upper()}"[:44]
+    elif is_asm:
+        sheet = f"ASSEMBLY OF {len(meta['components'])} · " + " · ".join(c["label"].upper() for c in meta["components"])
+        sheet = sheet[:44]
+    rows = [("TITLE", title), ("DWG NO", dwg),
             ("SCALE", scale_txt), ("UNITS", f"MM · TOLERANCE ±{tol} UNLESS NOTED"),
-            ("MATERIAL", f"{mat} · {meta.get('mass_g_pla', '?')} g SOLID"), ("PRINTER", pr_txt),
-            ("DRAWN", f"CLAUDE · {meta['ts'][:10]}"), ("SHEET", "1 OF 1")]
+            ("MATERIAL", f"{mat} · {mass} g SOLID"), ("PRINTER", pr_txt),
+            ("DRAWN", f"CLAUDE · {meta['ts'][:10]}"), ("SHEET", sheet)]
     chrome.append(f'<rect class="border" x="{tx}" y="{ty}" width="{TITLE_W}" height="{TITLE_H}"/>')
     rh = TITLE_H / len(rows)
     for i, (k, v) in enumerate(rows):
@@ -258,9 +280,15 @@ def make_drawing(part, meta, out):
 
 if __name__ == "__main__":
     name, tag = sys.argv[1], sys.argv[2]
+    cname = sys.argv[3] if len(sys.argv) > 3 else None          # one component of an assembly
     vdir = ROOT / "parts" / name / "versions"
     meta = json.loads((vdir / f"{tag}.json").read_text())
     t = time.time()
-    part = import_step(str(vdir / f"{tag}.step"))
-    info = make_drawing(part, meta, vdir / f"{tag}_drawing.svg")
-    print(json.dumps(dict(out=str(vdir / f"{tag}_drawing.svg"), seconds=round(time.time() - t, 1), **info)))
+    comp = next((c for c in meta.get("components") or [] if c["name"] == cname), None) if cname else None
+    if cname and not comp:
+        raise SystemExit(f"{tag} has no component {cname!r}")
+    src = vdir / tag / f"{cname}.step" if comp else vdir / f"{tag}.step"
+    out = vdir / (f"{tag}_{cname}_drawing.svg" if comp else f"{tag}_drawing.svg")
+    part = import_step(str(src))
+    info = make_drawing(part, meta, out, comp)
+    print(json.dumps(dict(out=str(out), seconds=round(time.time() - t, 1), **info)))

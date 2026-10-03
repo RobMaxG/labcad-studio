@@ -100,14 +100,39 @@
   #send{align-self:flex-end;background:var(--marker);color:var(--marker-ink);font-weight:700;padding:9px 16px;border-radius:8px}
   #send:disabled{opacity:.45;cursor:default}
   /* knobs */
-  .knob{display:grid;grid-template-columns:1fr 64px;gap:4px 10px;align-items:center;margin-bottom:12px}
-  .knob label{grid-column:1/3;display:flex;justify-content:space-between;font-size:13px}
-  .knob label span{color:var(--ink-3)}
-  .knob.changed label{color:var(--marker)}
-  .knob input[type=range]{width:100%;accent-color:var(--marker)}
-  .knob input[type=number]{background:var(--bed-2);border:1px solid var(--line);border-radius:6px;padding:4px 6px;width:64px;text-align:right}
+  #knobtop{display:flex;gap:10px;align-items:center;padding:12px 16px 4px}
+  #knobfilter{flex:1;min-width:0;background:var(--bed-2);border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:13px}
+  #knobadv-l{white-space:nowrap}
+  .kdoc{color:var(--ink-2);margin:2px 0 12px;font-size:13px}
+  .kg{border-top:1px solid var(--line);padding:4px 0 6px}
+  .kg:first-of-type{border-top:0}
+  .kg summary{cursor:pointer;list-style:none;font-size:12px;font-weight:700;color:var(--ink-2);padding:8px 0 6px;display:flex;align-items:baseline;gap:8px}
+  .kg summary::-webkit-details-marker{display:none}
+  .kg summary::before{content:"▾";color:var(--ink-3);font-size:10px;width:10px}
+  .kg:not([open]) summary::before{content:"▸"}
+  .kg-v{font-weight:500;color:var(--ink-3)}
+  .knob{margin:0 0 12px}
+  .knob .kl{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+  .knob .kn{font-size:13px;color:var(--ink);flex:1;min-width:0}
+  .knob.changed .kn{color:var(--marker)}
+  .knob .was{color:var(--ink-3);font-size:11.5px;white-space:nowrap}
+  .knob .kv{display:flex;align-items:center;gap:4px;flex:none}
+  .knob .kv input{background:var(--bed-2);border:1px solid var(--line);border-radius:6px;padding:3px 6px;width:66px;text-align:right;font-size:13px}
+  .knob .u{color:var(--ink-3);font-size:12px;width:18px}
+  .knob input[type=range]{width:100%;accent-color:var(--marker);margin:0}
+  .knob select{background:var(--bed-2);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-size:13px}
+  .knob .kh{color:var(--ink-3);font-size:12px;line-height:1.35;margin-top:2px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+  .knob:hover .kh,.knob:focus-within .kh{-webkit-line-clamp:4}
+  .knob.fixed .kv{color:var(--ink-2);font-size:13px}
+  .switch{width:34px;height:20px;border-radius:999px;background:var(--line-2);position:relative;flex:none}
+  .switch::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--ink-2);transition:transform .12s}
+  .switch[aria-checked=true]{background:var(--marker)}
+  .switch[aria-checked=true]::after{transform:translateX(14px);background:var(--marker-ink)}
+  @media (prefers-reduced-motion:reduce){.switch::after{transition:none}}
+  .kguess{color:var(--ink-3);font-size:12.5px;border-top:1px solid var(--line);padding-top:12px;margin-top:6px}
+  .kguess button{color:var(--marker);text-decoration:underline;padding:0}
   #knobfoot{border-top:1px solid var(--line);padding:12px 16px;display:flex;gap:8px;align-items:center}
-  #knobfoot .grow{flex:1;color:var(--ink-3);font-size:13px}
+  #knobfoot .grow{flex:1;color:var(--ink-3);font-size:12.5px;line-height:1.35}
   .btn{background:var(--bed-2);border:1px solid var(--line-2);border-radius:8px;padding:8px 14px;font-weight:600;color:inherit;text-decoration:none;display:inline-block}
   .btn.primary{background:var(--marker);color:var(--marker-ink);border-color:var(--marker)}
   .btn:disabled{opacity:.45;cursor:default}
@@ -121,7 +146,8 @@
   .ver .dl{grid-column:2/4;font-size:12px}
   .ver .dl a{color:var(--ink-2);margin-right:12px}
   #empty{color:var(--ink-3);padding:40px 20px;text-align:center}
-  .ver .act{grid-column:2/4;font-size:12px;display:flex;gap:12px}
+  .ver .act{grid-column:2/4;font-size:12px;display:flex;flex-wrap:wrap;gap:4px 12px}
+  .ver .act button{white-space:nowrap}
   .ver .act button{color:var(--ink-2);padding:0}
   .ver .act button:hover{color:var(--marker)}
   #lineage{color:var(--ink-3);font-size:12.5px}
@@ -179,6 +205,72 @@
   .fam .node .ct{color:var(--ink-3);font-size:12px}
   .fam .node .why{grid-column:1/3;color:var(--ink-3);font-size:12px}
   .err{color:var(--bad)}
+  /* parts legend (assemblies) */
+  #legend{position:absolute;top:96px;left:16px;width:230px;background:rgba(23,26,30,.86);border:1px solid var(--line);border-radius:10px;padding:8px 8px 10px;font-size:13px;z-index:2}
+  #legend[hidden]{display:none}
+  .lg-h{font-size:12px;font-weight:700;color:var(--ink-2);padding:0 4px 6px}
+  .lg-h span{color:var(--ink-3);font-weight:500}
+  .lg-row{display:flex;align-items:center;gap:8px;padding:3px 4px;border-radius:6px}
+  .lg-row:hover{background:var(--panel)}
+  .lg-row.solo{box-shadow:inset 2px 0 0 var(--marker);background:var(--panel)}
+  .lg-row .sw{width:14px;height:14px;border-radius:4px;background:var(--c);border:2px solid var(--c);flex:none;padding:0}
+  .lg-row.off .sw{background:transparent}
+  .lg-row .nm{flex:1;text-align:left;padding:2px 0;color:var(--ink)}
+  .lg-row.off .nm{color:var(--ink-3)}
+  .lg-row .nm span{color:var(--ink-3);font-size:12px}
+  .lg-row .chg{font-size:10.5px;font-weight:700;color:var(--marker);border:1px solid rgba(255,159,67,.5);border-radius:999px;padding:0 6px}
+  .lg-x{display:flex;align-items:center;gap:8px;margin:8px 4px 0;padding-top:8px;border-top:1px solid var(--line);color:var(--ink-2);font-size:12px}
+  .lg-x input{flex:1;accent-color:var(--marker)}
+  /* preview bar — knob changes that aren't a version yet */
+  #pvbar{position:absolute;top:56px;right:16px;max-width:min(600px,calc(100% - 340px));display:flex;align-items:center;gap:10px;background:rgba(23,26,30,.92);border:1px solid var(--line-2);border-left:3px solid var(--marker);border-radius:10px;padding:8px 10px 8px 12px;font-size:13px;z-index:3;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+  #pvbar[hidden]{display:none}
+  #pvbar #pv-text{flex:1;min-width:0;line-height:1.35}
+  #pvbar .pv-sub{color:var(--ink-2)}
+  #pvbar .pv-warn{color:var(--bad);font-weight:600}
+  #pvbar .btn{padding:6px 11px;white-space:nowrap}
+  #pvbar[data-mode=busy] #pv-text b::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--marker);margin-right:7px;animation:pulse 1s infinite}
+  .pv-tag{color:var(--marker);font-weight:700}
+  /* versions: which pieces changed */
+  .ver .chips{grid-column:2/4;display:flex;flex-wrap:wrap;gap:4px}
+  .ver .chips i{font-style:normal;font-size:11.5px;color:var(--ink-2);border:1px solid var(--line-2);border-radius:999px;padding:0 7px 0 5px;display:inline-flex;align-items:center;gap:5px}
+  .ver .chips i::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--c)}
+  .ver .chips i b{font-weight:600;color:var(--ink-3)}
+  .ver .chips i.none::before{display:none}
+  /* print tab */
+  .pr-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
+  .pr-head > div:first-child{flex:1}
+  .pr-sub{color:var(--ink-3);font-size:12.5px}
+  .pr-dl{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .pr-dl .btn{padding:6px 10px;font-size:13px}
+  .pr-note{color:var(--marker);font-size:12.5px;margin:0 0 10px}
+  .pr-legacy p{color:var(--ink-2);font-size:13px}
+  .pcard{border:1px solid var(--line);border-left:3px solid var(--c);border-radius:9px;padding:10px 12px;margin-bottom:10px;background:var(--bed-2);display:flex;flex-direction:column;gap:4px}
+  .pc-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .pc-sw{width:10px;height:10px;border-radius:3px;background:var(--c)}
+  .pc-q{color:var(--ink-2);font-weight:700}
+  .pc-chg,.pc-new{font-size:11px;font-weight:700;color:var(--marker);border:1px solid rgba(255,159,67,.45);border-radius:999px;padding:0 7px;margin-left:auto}
+  .pc-same{font-size:11px;color:var(--ink-3);margin-left:auto}
+  .pc-meta{color:var(--ink-2);font-size:12.5px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+  .pc-fil{font-size:12.5px;color:var(--ink-2)}
+  .pc-note{font-size:12.5px;color:var(--ink-3)}
+  .pc-act{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;margin-top:2px}
+  .pc-act a,.pc-act .plink{color:var(--ink-2);padding:0}
+  .pc-act a:hover,.pc-act .plink:hover{color:var(--ink)}
+  .pc-act .grow{flex:1}
+  .pbtn{border:1px solid var(--line-2);border-radius:7px;padding:3px 9px;color:var(--ink)}
+  .pr-ok{color:var(--ok)}
+  .pr-re{color:var(--marker);font-weight:600}
+  .fit{font-size:11px;font-weight:700;padding:0 8px;border-radius:999px;border:1px solid var(--line-2)}
+  .fit.fits{color:var(--ok);border-color:rgba(143,209,158,.5)}
+  .fit.rotate,.fit.diagonal{color:#e8c37a;border-color:rgba(232,195,122,.5)}
+  .fit.too_big{color:var(--bad);border-color:rgba(240,122,122,.5)}
+  /* talk: who/what a message is about */
+  #scope{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-3)}
+  #scope[hidden]{display:none}
+  #scope select{background:var(--bed-2);border:1px solid var(--line);border-radius:6px;padding:3px 6px;color:var(--ink);font-size:12.5px}
+  .dp .pc{font-size:11px;font-weight:600;color:var(--ink-2);border-left:3px solid var(--c);padding-left:5px;flex:none;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #bp-comp{background:var(--panel);border:1px solid var(--line-2);border-radius:8px;padding:6px 8px}
+  #bp-comp[hidden]{display:none}
   @media (max-width:900px){#app{grid-template-columns:var(--rail) 1fr;grid-template-rows:55vh 45vh}#side{grid-column:1/3;border-left:0;border-top:1px solid var(--line)}}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
@@ -222,10 +314,12 @@
       <div class="row"><button class="btn" id="fork-cancel">Cancel</button><button class="btn primary" id="fork-go">Create variant</button></div>
     </div>
     <div id="ghostsrc">ghost <select id="ghost-sel"></select></div>
+    <div id="legend" hidden></div>
+    <div id="pvbar" hidden role="status"><span id="pv-text"></span><button class="btn" id="pv-discard">Discard</button><button class="btn primary" id="pv-save">Save as version</button></div>
     <div id="hint"></div>
     <div id="section"><select id="sec-axis"><option value="z">Z</option><option value="x">X</option><option value="y">Y</option></select><button id="sec-flip" title="Cut from the other end">keep below</button><input id="sec-pos" type="range" min="0" max="1000" value="1000"><span id="sec-val">—</span><label class="chk"><input type="checkbox" id="sec-solid" checked> solid interior</label></div>
     <div id="blueprint" hidden>
-      <div class="bar"><span id="bp-title"></span><span class="grow"></span><button id="bp-theme" class="btn">Paper</button><a id="bp-dl" class="btn" download>Download SVG</a><button id="bp-close" class="btn">Close</button></div>
+      <div class="bar"><span id="bp-title"></span><span class="grow"></span><select id="bp-comp" hidden aria-label="Which piece to draw"></select><button id="bp-theme" class="btn">Paper</button><a id="bp-dl" class="btn" download>Download SVG</a><button id="bp-close" class="btn">Close</button></div>
       <div id="bp-sheet"><div id="bp-wait">Drafting…</div></div>
     </div>
     <div id="title">
@@ -243,6 +337,7 @@
     <div id="tabs" role="tablist">
       <button role="tab" aria-selected="true" data-pane="talk">Talk</button>
       <button role="tab" aria-selected="false" data-pane="knobs">Knobs</button>
+      <button role="tab" aria-selected="false" data-pane="print">Print</button>
       <button role="tab" aria-selected="false" data-pane="versions">Versions</button>
       <button role="tab" aria-selected="false" data-pane="family">Family</button>
     </div>
@@ -252,13 +347,18 @@
         <div id="live"></div>
         <div id="draftpins"></div>
         <div id="attach"></div>
+        <div id="scope" hidden>About <select id="scope-sel" aria-label="What this message is about"></select></div>
         <textarea id="text" placeholder="Tell Claude what's wrong with it, or what you want next. Pins and a screenshot of this view go along; paste or drop photos too."></textarea>
         <button id="send">Send to Claude</button>
       </div>
     </section>
     <section class="pane" id="pane-knobs">
+      <div id="knobtop"><input type="search" id="knobfilter" placeholder="Find a knob" aria-label="Find a knob"><label class="chk" id="knobadv-l" hidden><input type="checkbox" id="knobadv"> <span id="knobadv-n"></span></label></div>
       <div class="scroll" id="knobs"></div>
-      <div id="knobfoot"><span class="grow" id="knobstate">Drag a knob, then rebuild. No Claude involved — it's just the model.</span><button class="btn" id="knobreset">Reset</button><button class="btn primary" id="rebuild">Rebuild</button></div>
+      <div id="knobfoot"><span class="grow" id="knobstate"></span><button class="btn" id="knobreset">Discard</button><button class="btn primary" id="rebuild">Save as version</button></div>
+    </section>
+    <section class="pane" id="pane-print">
+      <div class="scroll" id="print"></div>
     </section>
     <section class="pane" id="pane-versions">
       <div class="scroll" id="versions"></div>
@@ -269,462 +369,6 @@
   </aside>
 </div>
 
-<script type="module">
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { STLLoader } from 'three/addons/loaders/STLLoader.js';
-import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { drawTimeline, drawTimelineVertical, TIMELINE_CSS, TIMELINE_V_CSS } from './timeline.js';
-document.head.insertAdjacentHTML('beforeend', `<style>${TIMELINE_CSS}${TIMELINE_V_CSS}</style>`);
-
-const $ = s => document.querySelector(s);
-const state = { part: null, spec: null, version: null, tool: null, pins: [], measures: [], mpts: [], ghostOn: false, wire: false, busy: false, knobs: {} };
-
-// ---------- scene ----------
-const stage = $('#stage');
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, stencil: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.localClippingEnabled = true; stage.prepend(renderer.domElement);
-const labelR = new CSS2DRenderer({ element: $('#labels') });
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(35, 1, 1, 5000); camera.up.set(0, 0, 1);
-const controls = new OrbitControls(camera, renderer.domElement); controls.enableDamping = true; controls.dampingFactor = 0.12;
-scene.add(new THREE.HemisphereLight(0xd8e4f2, 0x2a2622, 0.9));
-const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(-120, -180, 260); scene.add(key);
-const fill = new THREE.DirectionalLight(0xbfd0e6, 0.6); fill.position.set(200, 80, 100); scene.add(fill);
-const rim = new THREE.DirectionalLight(0xffb070, 0.35); rim.position.set(60, 220, -40); scene.add(rim);
-let grid = null, mesh = null, ghost = null, edges = null;
-const clip = new THREE.Plane(new THREE.Vector3(0, 0, -1), 1e6);
-const plaMat = new THREE.MeshStandardMaterial({ color: 0x9fc0e8, roughness: 0.55, metalness: 0.04, flatShading: true, side: THREE.DoubleSide, clippingPlanes: [clip] });
-// capped section cut: stencil trick from three's clipping_stencil example — back faces ++, front faces --, cap drawn where stencil != 0
-const capMat = new THREE.MeshStandardMaterial({ color: 0x7d9cc2, roughness: 0.7, metalness: 0.02, stencilWrite: true, stencilRef: 0, stencilFunc: THREE.NotEqualStencilFunc, stencilFail: THREE.ReplaceStencilOp, stencilZFail: THREE.ReplaceStencilOp, stencilZPass: THREE.ReplaceStencilOp });
-const cap = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), capMat); cap.renderOrder = 1.1; cap.visible = false; cap.onAfterRender = r => r.clearStencil(); scene.add(cap);
-let stencilGroup = null;
-function makeStencilGroup(geometry) {
-  const g = new THREE.Group();
-  for (const [side, op] of [[THREE.BackSide, THREE.IncrementWrapStencilOp], [THREE.FrontSide, THREE.DecrementWrapStencilOp]]) {
-    const m = new THREE.MeshBasicMaterial({ depthWrite: false, depthTest: false, colorWrite: false, stencilWrite: true, stencilFunc: THREE.AlwaysStencilFunc, side, clippingPlanes: [clip], stencilFail: op, stencilZFail: op, stencilZPass: op });
-    const mesh = new THREE.Mesh(geometry, m); mesh.renderOrder = 1; g.add(mesh);
-  }
-  return g;
-}
-function updateCap() {
-  if (!cap.visible) return;
-  clip.coplanarPoint(cap.position); cap.lookAt(cap.position.x - clip.normal.x, cap.position.y - clip.normal.y, cap.position.z - clip.normal.z);
-}
-const ghostMat = new THREE.MeshStandardMaterial({ color: 0xff9f43, transparent: true, opacity: 0.22, depthWrite: false, flatShading: true, side: THREE.DoubleSide });
-const pinGroup = new THREE.Group(); scene.add(pinGroup);
-const measGroup = new THREE.Group(); scene.add(measGroup);
-
-function resize() { const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h); labelR.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }
-new ResizeObserver(resize).observe(stage); resize();
-(function loop() { requestAnimationFrame(loop); controls.update(); updateCap(); renderer.render(scene, camera); labelR.render(scene, camera); })();
-
-function fitView(box) {
-  const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3()), d = s.length();
-  camera.position.set(c.x - d * 0.9, c.y - d * 1.05, c.z + d * 0.8); controls.target.copy(c); camera.near = d / 100; camera.far = d * 20; camera.updateProjectionMatrix(); controls.update();
-}
-function makeGrid(box) {
-  if (grid) scene.remove(grid);
-  const s = box.getSize(new THREE.Vector3()), span = Math.ceil(Math.max(s.x, s.y) * 1.6 / 50) * 50;
-  grid = new THREE.GridHelper(span, span / 10, 0x3c424b, 0x2a2e35); grid.rotation.x = Math.PI / 2;
-  const c = box.getCenter(new THREE.Vector3()); grid.position.set(c.x, c.y, box.min.z - 0.05); scene.add(grid);
-}
-async function loadMesh(tag, fit) {
-  const geo = await new STLLoader().loadAsync(`/api/parts/${state.part}/versions/${tag}/stl`);
-  geo.computeVertexNormals();
-  if (mesh) { scene.remove(mesh); mesh.geometry.dispose(); }
-  if (edges) { scene.remove(edges); edges.geometry.dispose(); edges = null; }
-  mesh = new THREE.Mesh(geo, plaMat); mesh.renderOrder = 2; scene.add(mesh);
-  if (stencilGroup) scene.remove(stencilGroup);
-  stencilGroup = makeStencilGroup(geo); scene.add(stencilGroup);
-  const box = new THREE.Box3().setFromObject(mesh); mesh.userData.box = box; makeGrid(box);
-  const d = box.getSize(new THREE.Vector3()).length() * 1.5; cap.geometry.dispose(); cap.geometry = new THREE.PlaneGeometry(d, d);
-  if (state.wire) showEdges();
-  if (fit) { if (state.pose?.position) { camera.position.fromArray(state.pose.position); controls.target.fromArray(state.pose.target); const d = box.getSize(new THREE.Vector3()).length(); camera.near = d / 100; camera.far = d * 20; camera.updateProjectionMatrix(); controls.update(); } else fitView(box); }
-  await loadGhost();
-  setClipRange();
-}
-async function loadGhost() {
-  if (ghost) { scene.remove(ghost); ghost.geometry.dispose(); ghost = null; }
-  const url = ghostUrl(); if (!url) return;
-  const g = await new STLLoader().loadAsync(url); g.computeVertexNormals(); ghost = new THREE.Mesh(g, ghostMat); ghost.visible = state.ghostOn; scene.add(ghost);
-}
-function ghostUrl() {
-  const sel = $('#ghost-sel').value || 'prev', vs = state.spec?.versions || [], cur = state.version, lin = state.spec?.lineage;
-  if (sel === 'prev') { const i = vs.findIndex(x => x.version === cur?.version); return i > 0 ? `/api/parts/${state.part}/versions/${vs[i - 1].tag}/stl` : null; }
-  if (sel === 'parent') return lin ? `/api/parts/${lin.parent}/versions/latest/stl` : null;
-  if (sel === 'parent-at') return lin ? `/api/parts/${lin.parent}/versions/v${String(lin.from_version).padStart(3, '0')}/stl` : null;
-  return `/api/parts/${state.part}/versions/${sel}/stl`;
-}
-function renderGhostOptions() {
-  const lin = state.spec?.lineage, vs = state.spec?.versions || [];
-  $('#ghost-sel').innerHTML = `<option value="prev">previous version</option>` + (lin ? `<option value="parent">${lin.parent.replace(/_/g, ' ')} · latest</option><option value="parent-at">${lin.parent.replace(/_/g, ' ')} · v${String(lin.from_version).padStart(3, '0')} (fork point)</option>` : '') + vs.map(v => `<option value="${v.tag}">${v.tag} — ${esc(v.message).slice(0, 40)}</option>`).join('');
-}
-$('#ghost-sel').onchange = loadGhost;
-function showEdges() { if (!mesh) return; if (edges) scene.remove(edges); edges = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry, 25), new THREE.LineBasicMaterial({ color: 0x1d2025, transparent: true, opacity: 0.55 })); scene.add(edges); }
-
-// ---------- section ----------
-function setClipRange() {
-  const box = mesh?.userData.box; if (!box) return;
-  const ax = $('#sec-axis').value, t = $('#sec-pos').value / 1000, on = $('#t-section').getAttribute('aria-pressed') === 'true', flip = state.secFlip, solid = $('#sec-solid').checked;
-  const n = new THREE.Vector3(); n[ax] = flip ? 1 : -1;
-  const lo = box.min[ax], hi = box.max[ax], pos = lo + (hi - lo) * t;
-  clip.normal.copy(n); clip.constant = on ? (flip ? -pos : pos) : 1e6;
-  $('#sec-val').textContent = on ? `${ax} = ${pos.toFixed(1)} mm` : 'off';
-  $('#sec-flip').textContent = flip ? 'keep above' : 'keep below';
-  cap.visible = on && solid; if (stencilGroup) stencilGroup.visible = on && solid;
-  plaMat.side = on && solid ? THREE.FrontSide : THREE.DoubleSide; plaMat.needsUpdate = true;
-}
-$('#sec-axis').oninput = $('#sec-pos').oninput = $('#sec-solid').onchange = setClipRange;
-$('#sec-flip').onclick = () => { state.secFlip = !state.secFlip; setClipRange(); };
-
-// ---------- tools ----------
-const ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
-function hint(t) { $('#hint').textContent = t || ''; $('#hint').classList.toggle('on', !!t); }
-function setTool(t) {
-  state.tool = state.tool === t ? null : t; state.mpts = [];
-  for (const k of ['pin', 'measure']) $(`#t-${k}`).setAttribute('aria-pressed', String(state.tool === k));
-  renderer.domElement.style.cursor = state.tool ? 'crosshair' : '';
-  hint(state.tool === 'pin' ? 'Click the surface to drop a pin' : state.tool === 'measure' ? 'Click two points' : '');
-}
-$('#t-pin').onclick = () => setTool('pin'); $('#t-measure').onclick = () => setTool('measure');
-$('#t-home').onclick = () => { if (!mesh) return; state.pose = null; fitView(mesh.userData.box); };
-$('#t-clear').onclick = () => { clearPins(); clearMeasures(); };
-$('#t-section').onclick = e => { const on = e.currentTarget.getAttribute('aria-pressed') !== 'true'; e.currentTarget.setAttribute('aria-pressed', String(on)); $('#section').classList.toggle('on', on); setClipRange(); };
-$('#t-ghost').onclick = e => { state.ghostOn = !state.ghostOn; e.currentTarget.setAttribute('aria-pressed', String(state.ghostOn)); $('#ghostsrc').classList.toggle('on', state.ghostOn); if (ghost) ghost.visible = state.ghostOn; if (state.ghostOn && !ghost) hint('Nothing to ghost yet — pick a source'); };
-// ---------- blueprint ----------
-state.bpTheme = localStorage.getItem('labcad.bpTheme') || 'blueprint';
-async function openBlueprint() {
-  if (!state.version) return;
-  const bp = $('#blueprint'); bp.hidden = false; $('#t-blue').setAttribute('aria-pressed', 'true');
-  $('#bp-title').textContent = `${state.part.replace(/_/g, ' ')} · ${state.version.tag}`;
-  $('#bp-sheet').innerHTML = '<div id="bp-wait">Drafting…</div>';
-  const url = `/api/parts/${state.part}/versions/${state.version.tag}/drawing`; $('#bp-dl').href = url; $('#bp-dl').download = `${state.part}_${state.version.tag}_drawing.svg`;
-  const r = await fetch(url);
-  if (!r.ok) { $('#bp-sheet').innerHTML = `<div id="bp-wait" class="err">Couldn't draft this one: ${esc((await r.json()).error || r.status)}</div>`; return; }
-  $('#bp-sheet').innerHTML = await r.text(); applyBpTheme();
-}
-function applyBpTheme() { const svg = $('#bp-sheet svg'); if (svg) svg.setAttribute('class', `sheet ${state.bpTheme}`); $('#bp-theme').textContent = state.bpTheme === 'blueprint' ? 'Paper' : 'Blueprint'; }
-function closeBlueprint() { $('#blueprint').hidden = true; $('#t-blue').setAttribute('aria-pressed', 'false'); }
-$('#t-blue').onclick = () => $('#blueprint').hidden ? openBlueprint() : closeBlueprint();
-$('#bp-close').onclick = closeBlueprint;
-$('#bp-theme').onclick = () => { state.bpTheme = state.bpTheme === 'blueprint' ? 'paper' : 'blueprint'; localStorage.setItem('labcad.bpTheme', state.bpTheme); applyBpTheme(); };
-$('#t-thumb').onclick = async () => {
-  const img = snapshot(960); if (!img) return;
-  const pose = { position: camera.position.toArray(), target: controls.target.toArray() };
-  const r = await fetch(`/api/parts/${state.part}/thumbnail`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ image: img, pose }) });
-  state.pose = pose; hint(r.ok ? 'Saved — this view is the thumbnail and the home view' : 'Could not save thumbnail'); setTimeout(() => hint(''), 2500);
-};
-$('#t-wire').onclick = e => { state.wire = !state.wire; e.currentTarget.setAttribute('aria-pressed', String(state.wire)); if (state.wire) showEdges(); else if (edges) { scene.remove(edges); edges = null; } };
-document.addEventListener('keydown', e => {
-  if (e.target.matches('input,textarea,select')) return;
-  const k = e.key.toLowerCase();
-  if (k === 'p') setTool('pin'); else if (k === 'm') setTool('measure'); else if (k === 'escape') { if (!$('#blueprint').hidden) closeBlueprint(); else state.tool && setTool(state.tool); }
-  else if (k === 'h') $('#t-home').click(); else if (k === 't') $('#t-thumb').click(); else if (k === 'b') $('#t-blue').click(); else if (k === 'g') $('#t-ghost').click(); else if (k === 's') $('#t-section').click(); else if (k === 'e') $('#t-wire').click();
-});
-let down = null;
-renderer.domElement.addEventListener('pointerdown', e => down = [e.clientX, e.clientY]);
-renderer.domElement.addEventListener('pointerup', e => {
-  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 4 || !state.tool || !mesh) return;
-  const r = renderer.domElement.getBoundingClientRect(); ptr.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
-  ray.setFromCamera(ptr, camera); const hit = ray.intersectObject(mesh)[0]; if (!hit) return;
-  if (state.tool === 'pin') addPin(hit.point); else addMeasurePoint(hit.point);
-});
-function dropLabels(o) { o.traverse(x => { if (x.isCSS2DObject) x.element.remove(); }); }
-function markerSize() { return mesh ? mesh.userData.box.getSize(new THREE.Vector3()).length() * 0.007 : 1; }
-function addPin(p) {
-  const n = state.pins.length + 1; const s = new THREE.Mesh(new THREE.SphereGeometry(markerSize(), 16, 12), new THREE.MeshBasicMaterial({ color: 0xff9f43 })); s.position.copy(p);
-  const el = document.createElement('div'); el.className = 'pin-label'; el.textContent = n; s.add(new CSS2DObject(el)); pinGroup.add(s);
-  state.pins.push({ n, x: p.x, y: p.y, z: p.z, note: '', obj: s }); renderDraftPins(); setTool('pin'); setTool('pin');
-  setTimeout(() => $(`#dp-${n}`)?.focus(), 0);
-}
-function clearPins() { for (const p of state.pins) { dropLabels(p.obj); pinGroup.remove(p.obj); } state.pins = []; renderDraftPins(); }
-function renderDraftPins() {
-  $('#draftpins').innerHTML = state.pins.map(p => `<div class="dp"><span class="n">${p.n}</span><input id="dp-${p.n}" placeholder="what about this spot?" value="${esc(p.note)}"><span class="xyz">${p.x.toFixed(0)}, ${p.y.toFixed(0)}, ${p.z.toFixed(0)}</span><button title="Remove pin" data-n="${p.n}">×</button></div>`).join('')
-    + state.measures.map((m, i) => `<div class="dp"><span class="n" style="background:var(--panel);color:var(--marker);border:1px solid var(--marker)">↔</span><span style="flex:1">${m.label}</span><span class="xyz">${m.mm.toFixed(2)} mm</span><button title="Remove" data-m="${i}">×</button></div>`).join('');
-  $('#draftpins').querySelectorAll('input').forEach(i => { i.oninput = () => { state.pins.find(p => `dp-${p.n}` === i.id).note = i.value; }; i.onkeydown = e => { if (e.key === 'Escape') { i.blur(); state.tool && setTool(state.tool); } if (e.key === 'Enter') i.blur(); }; });
-  $('#draftpins').querySelectorAll('button[data-n]').forEach(b => b.onclick = () => { const p = state.pins.find(p => p.n == b.dataset.n); dropLabels(p.obj); pinGroup.remove(p.obj); state.pins = state.pins.filter(x => x !== p); state.pins.forEach((p, i) => { p.n = i + 1; p.obj.children[0].element.textContent = p.n; }); renderDraftPins(); });
-  $('#draftpins').querySelectorAll('button[data-m]').forEach(b => b.onclick = () => { const m = state.measures[b.dataset.m]; dropLabels(m.obj); measGroup.remove(m.obj); state.measures.splice(b.dataset.m, 1); renderDraftPins(); });
-}
-function addMeasurePoint(p) {
-  state.mpts.push(p.clone());
-  const dot = new THREE.Mesh(new THREE.SphereGeometry(markerSize() * 0.6, 12, 8), new THREE.MeshBasicMaterial({ color: 0xff9f43 })); dot.position.copy(p); measGroup.add(dot);
-  if (state.mpts.length < 2) { hint('Now the second point'); return; }
-  const [a, b] = state.mpts; const mm = a.distanceTo(b);
-  const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), new THREE.LineBasicMaterial({ color: 0xff9f43 }));
-  const el = document.createElement('div'); el.className = 'dim-label'; el.textContent = `${mm.toFixed(2)} mm`; const lab = new CSS2DObject(el); lab.position.copy(a).lerp(b, 0.5);
-  const g = new THREE.Group(); g.add(line, lab); measGroup.add(g);
-  const d = new THREE.Vector3().subVectors(b, a); const ax = ['x', 'y', 'z'][[Math.abs(d.x), Math.abs(d.y), Math.abs(d.z)].indexOf(Math.max(Math.abs(d.x), Math.abs(d.y), Math.abs(d.z)))];
-  state.measures.push({ label: `${ax}-ish, ${a.x.toFixed(0)},${a.y.toFixed(0)},${a.z.toFixed(0)} → ${b.x.toFixed(0)},${b.y.toFixed(0)},${b.z.toFixed(0)}`, mm, obj: g });
-  state.mpts = []; hint('Click two points'); renderDraftPins();
-}
-function clearMeasures() { dropLabels(measGroup); measGroup.clear(); state.measures = []; state.mpts = []; renderDraftPins(); }
-
-// ---------- data ----------
-const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-async function loadPartsList() {
-  const parts = await (await fetch('/api/parts')).json();
-  const cur = $('#parts').value;
-  $('#parts').innerHTML = parts.map(p => `<option value="${p.name}">${p.lineage ? '\u21b3 ' : ''}${p.name.replace(/_/g, ' ')}</option>`).join('');
-  if (cur) $('#parts').value = cur;
-  return parts;
-}
-async function loadParts() {
-  const parts = await loadPartsList();
-  const want = new URLSearchParams(location.search).get('part') || localStorage.getItem('labcad.part') || parts[0]?.name;
-  if (want && parts.some(p => p.name === want)) $('#parts').value = want;
-  if (parts.length) selectPart($('#parts').value); else $('#chat').innerHTML = '<div id="empty">No parts yet. Add parts/&lt;name&gt;/model.py and build it once.</div>';
-}
-$('#parts').onchange = () => selectPart($('#parts').value);
-async function selectPart(name) {
-  state.part = name; localStorage.setItem('labcad.part', name); history.replaceState(null, '', `?part=${name}`);
-  clearPins(); clearMeasures(); state.version = null;
-  state.pose = await (await fetch(`/api/parts/${name}/pose`)).json();
-  await refresh(true);
-  $('#text').value = localStorage.getItem(`labcad.draft.${name}`) || '';
-  const wantV = Number(new URLSearchParams(location.search).get('v')); if (wantV) { const v = state.spec.versions.find(x => x.version === wantV); if (v) await showVersion(v); }
-}
-async function refresh(showLatest) {
-  state.spec = await (await fetch(`/api/parts/${state.part}`)).json();
-  renderChat(); renderVersions(); renderKnobs(); renderGhostOptions(); renderLineage(); renderFamily(); renderPrinter();
-  const vs = state.spec.versions; if (!vs.length) return;
-  if (showLatest || !state.version) await showVersion(vs[vs.length - 1]);
-}
-async function showVersion(v) {
-  const vs = state.spec.versions, fit = !state.version || state.version.part !== v.part; state.version = v; if (!$('#blueprint').hidden) openBlueprint();
-  await loadMesh(v.tag, fit);
-  $('#tb-part').textContent = state.part.replace(/_/g, ' '); $('#tb-ver').textContent = `${v.tag} of ${vs.length}`;
-  $('#tb-env').textContent = v.envelope.map(n => n.toFixed(1)).join(' × ') + ' mm';
-  $('#tb-vol').textContent = `${v.volume_cm3} cm³ · ${v.mass_g_pla} g PLA solid`;
-  $('#tb-ts').textContent = v.ts.replace('T', ' '); $('#tb-msg').textContent = v.message || '—';
-  renderVersions(); if ($('#pane-family').classList.contains('on')) renderFamily();
-}
-function renderVersions() {
-  const vs = [...state.spec.versions].reverse();
-  $('#versions').innerHTML = vs.map(v => `<div class="ver ${state.version?.version === v.version ? 'on' : ''}" data-v="${v.version}">
-    <span class="tag">${v.tag}</span><span>${v.mass_g_pla} g · ${v.envelope.map(n => n.toFixed(0)).join('×')}</span><span style="color:var(--ink-3);font-size:12px">${v.ts.slice(5, 16).replace('T', ' ')}</span>
-    <span class="msg2">${esc(v.message) || '<i style="color:var(--ink-3)">no message</i>'}</span>
-    <span class="dl"><a href="/api/parts/${state.part}/versions/${v.tag}/stl">STL</a><a href="/api/parts/${state.part}/versions/${v.tag}/step">STEP</a><a href="/api/parts/${state.part}/versions/${v.tag}/png" target="_blank">render</a></span>
-    <span class="act">${v.version !== state.spec.versions.at(-1).version ? `<button data-restore="${v.tag}">Make this current</button><button data-forkv="${v.version}">Fork from here</button>` : ''}<button class="ren" data-relabel="${v.tag}">Relabel</button>${state.spec.versions.length > 1 ? `<button data-delv="${v.tag}" style="color:var(--ink-3)">Delete</button>` : ''}</span></div>`).join('');
-  $('#versions').querySelectorAll('.ver').forEach(el => el.onclick = e => { if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') return; showVersion(state.spec.versions.find(v => v.version == el.dataset.v)); });
-  $('#versions').querySelectorAll('button[data-restore]').forEach(b => b.onclick = async () => { b.textContent = 'Restoring…'; const r = await fetch(`/api/parts/${state.part}/restore/${b.dataset.restore}`, { method: 'POST' }); if (r.ok) await refresh(true); else b.textContent = 'Restore failed'; });
-  $('#versions').querySelectorAll('button[data-forkv]').forEach(b => b.onclick = () => openFork(Number(b.dataset.forkv)));
-  $('#versions').querySelectorAll('button[data-relabel]').forEach(b => b.onclick = async () => { const v = state.spec.versions.find(x => x.tag === b.dataset.relabel); const m = await ask(`Relabel ${v.tag}`, v.message); if (m == null || m === v.message) return; await fetch(`/api/parts/${state.part}/versions/${v.tag}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message: m }) }); await refresh(false); if (state.version?.tag === v.tag) showVersion(state.spec.versions.find(x => x.tag === v.tag)); });
-  $('#versions').querySelectorAll('button[data-delv]').forEach(b => b.onclick = async () => { if (!confirm(`Move ${b.dataset.delv} to the trash? Restore it from the Library if you change your mind.`)) return; const r = await fetch(`/api/parts/${state.part}/versions/${b.dataset.delv}`, { method: 'DELETE' }); if (r.ok) { if (state.version?.tag === b.dataset.delv) state.version = null; await refresh(!state.version); } else hint((await r.json()).detail || 'Delete failed'); });
-}
-function renderChat() {
-  const c = $('#chat'); c.innerHTML = state.spec.chat.length ? state.spec.chat.map(m => {
-    const v = m.version ? `<span class="v" data-v="${m.version}">v${String(m.version).padStart(3, '0')}</span>` : '';
-    if (m.role === 'build') return `<div class="msg build"><div class="body">${v} rebuilt from knobs${m.params_changed && Object.keys(m.params_changed).length ? ': ' + esc(Object.entries(m.params_changed).map(([k, x]) => `${k}=${x}`).join(', ')) : ''}</div></div>`;
-    const pins = m.pins?.length ? `<ul class="pins">${m.pins.map(p => `<li data-n="${p.n}">${esc(p.note) || '(no note)'} <span style="color:var(--ink-3)">${p.x.toFixed(0)},${p.y.toFixed(0)},${p.z.toFixed(0)}</span></li>`).join('')}</ul>` : '';
-    const shots = m.shots?.length ? `<div class="shots">${m.shots.map(f => `<a href="/api/parts/${state.part}/shots/${f}" target="_blank"><img src="/api/parts/${state.part}/shots/${f}" alt=""></a>`).join('')}</div>` : '';
-    return `<div class="msg ${m.role}"><div class="who"><b>${m.role === 'assistant' ? 'Claude' : 'You'}</b> ${m.ts.slice(5, 16).replace('T', ' ')} ${v}</div><div class="body">${esc(m.text).replace(/\n/g, '<br>')}${pins}${shots}</div></div>`;
-  }).join('') : '<div id="empty">Nothing said yet. Drop a pin, tell Claude what bugs you.</div>';
-  c.querySelectorAll('.v').forEach(el => el.onclick = () => { const v = state.spec.versions.find(v => v.version == el.dataset.v); if (v) showVersion(v); });
-  c.scrollTop = c.scrollHeight;
-}
-function renderKnobs() {
-  const { knobs, params } = state.spec; state.knobs = { ...params };
-  $('#knobs').innerHTML = (state.spec.doc ? `<p style="color:var(--ink-2);margin:0 0 16px;font-size:13px">${esc(state.spec.doc.split('\n')[0])}</p>` : '') + knobs.map(k => {
-    if (!k.range) return `<div class="knob" data-k="${k.key}"><label>${k.key}<span>${esc(k.value)}</span></label></div>`;
-    const [lo, hi, st] = k.range;
-    return `<div class="knob" data-k="${k.key}"><label>${k.key}<span></span></label><input type="range" min="${lo}" max="${hi}" step="${st}" value="${k.value}"><input type="number" min="${lo}" max="${hi}" step="${st}" value="${k.value}"></div>`;
-  }).join('');
-  $('#knobs').querySelectorAll('.knob').forEach(el => {
-    const k = el.dataset.k, r = el.querySelector('input[type=range]'), n = el.querySelector('input[type=number]'); if (!r) return;
-    const set = v => { state.knobs[k] = Number(v); r.value = n.value = v; el.classList.toggle('changed', Number(v) !== params[k]); el.querySelector('label span').textContent = Number(v) !== params[k] ? `was ${params[k]}` : ''; knobState(); };
-    r.oninput = () => set(r.value); n.onchange = () => set(n.value);
-  });
-  knobState();
-}
-function changedKnobs() { return Object.fromEntries(Object.entries(state.knobs).filter(([k, v]) => v !== state.spec.params[k])); }
-function knobState() { const ch = changedKnobs(), n = Object.keys(ch).length; $('#knobstate').textContent = n ? `${n} change${n > 1 ? 's' : ''}: ${Object.entries(ch).map(([k, v]) => `${k} ${state.spec.params[k]}→${v}`).join(', ')}` : 'Drag a knob, then rebuild. No Claude involved — it\'s just the model.'; $('#rebuild').disabled = !n || state.busy; }
-$('#knobreset').onclick = renderKnobs;
-$('#rebuild').onclick = async () => {
-  const ch = changedKnobs(); if (!Object.keys(ch).length) return; setBusy(true); $('#knobstate').textContent = 'Building…';
-  const msg = Object.entries(ch).map(([k, v]) => `${k} ${state.spec.params[k]}→${v}`).join(', ');
-  const r = await fetch(`/api/parts/${state.part}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ params: ch, message: msg }) });
-  setBusy(false);
-  if (!r.ok) { $('#knobstate').innerHTML = `<span class="err">Build failed — ${esc((await r.json()).error.split('\n').filter(Boolean).pop())}</span>`; return; }
-  await refresh(true);
-};
-function setBusy(b) { state.busy = b; $('#send').disabled = b; $('#rebuild').disabled = b || !Object.keys(changedKnobs()).length; $('#live').classList.toggle('busy', b); }
-
-// ---------- screenshots & attachments ----------
-function snapshot(maxW = 1400) {
-  if (!mesh) return null;
-  controls.update(); updateCap(); renderer.render(scene, camera);           // fresh frame, same task, so the buffer is still there
-  const src = renderer.domElement, k = Math.min(1, maxW / src.width);
-  const c = document.createElement('canvas'); c.width = Math.round(src.width * k); c.height = Math.round(src.height * k);
-  const ctx = c.getContext('2d'); ctx.fillStyle = '#1d2025'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(src, 0, 0, c.width, c.height);
-  const dot = (p, txt, r) => { const v = p.clone().project(camera); if (v.z > 1) return; const x = (v.x + 1) / 2 * c.width, y = (1 - v.y) / 2 * c.height;
-    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = '#ff9f43'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#2a1a06'; ctx.stroke();
-    ctx.fillStyle = '#2a1a06'; ctx.font = `bold ${Math.round(r * 1.2)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, x, y + 1); };
-  for (const p of state.pins) dot(p.obj.position, String(p.n), 12 * k + 4);
-  for (const m of state.measures) { const [l] = m.obj.children; const a = new THREE.Vector3().fromBufferAttribute(l.geometry.attributes.position, 0), b = new THREE.Vector3().fromBufferAttribute(l.geometry.attributes.position, 1);
-    const va = a.clone().project(camera), vb = b.clone().project(camera); ctx.beginPath(); ctx.moveTo((va.x + 1) / 2 * c.width, (1 - va.y) / 2 * c.height); ctx.lineTo((vb.x + 1) / 2 * c.width, (1 - vb.y) / 2 * c.height); ctx.strokeStyle = '#ff9f43'; ctx.lineWidth = 2; ctx.stroke();
-    dot(a.clone().lerp(b, 0.5), `${m.mm.toFixed(1)}`, 16 * k + 4); }
-  return c.toDataURL('image/jpeg', 0.85);
-}
-state.attachments = [];
-function addAttachment(file) {
-  if (!file || !file.type.startsWith('image/')) return;
-  const rd = new FileReader(); rd.onload = () => {
-    const img = new Image(); img.onload = () => {                         // downscale big phone photos before upload
-      const k = Math.min(1, 1600 / Math.max(img.width, img.height)); const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
-      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); state.attachments.push(c.toDataURL('image/jpeg', 0.88)); renderAttachments(); };
-    img.src = rd.result; };
-  rd.readAsDataURL(file);
-}
-function renderAttachments() {
-  $('#attach').innerHTML = state.attachments.map((a, i) => `<div class="a"><img src="${a}" alt=""><button data-i="${i}" title="Remove">×</button></div>`).join('');
-  $('#attach').querySelectorAll('button').forEach(b => b.onclick = () => { state.attachments.splice(b.dataset.i, 1); renderAttachments(); });
-}
-$('#text').addEventListener('paste', e => { for (const it of e.clipboardData.items) if (it.type.startsWith('image/')) { addAttachment(it.getAsFile()); e.preventDefault(); } });
-for (const ev of ['dragenter', 'dragover']) $('#compose').addEventListener(ev, e => { e.preventDefault(); $('#compose').classList.add('drop'); });
-for (const ev of ['dragleave', 'drop']) $('#compose').addEventListener(ev, e => { e.preventDefault(); $('#compose').classList.remove('drop'); });
-$('#compose').addEventListener('drop', e => { for (const f of e.dataTransfer.files) addAttachment(f); });
-
-// ---------- send to Claude ----------
-$('#text').oninput = () => localStorage.setItem(`labcad.draft.${state.part}`, $('#text').value);
-$('#text').onkeydown = e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) $('#send').click(); };
-$('#send').onclick = async () => {
-  const text = $('#text').value.trim(); if (!text && !state.pins.length) { hint('Say something, or drop a pin'); return; }
-  setBusy(true); $('#live').textContent = 'Sending…';
-  const body = { text, version: state.version?.version, pins: state.pins.map(({ n, x, y, z, note }) => ({ n, x, y, z, note })), measures: state.measures.map(({ label, mm }) => ({ label, mm })), shot: snapshot(), attachments: state.attachments };
-  state.attachments = []; renderAttachments();
-  $('#text').value = ''; localStorage.removeItem(`labcad.draft.${state.part}`);
-  let res; try { res = await fetch(`/api/parts/${state.part}/feedback`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }); } catch (e) { $('#live').innerHTML = `<span class="err">Couldn't reach the Studio server.</span>`; setBusy(false); return; }
-  await refresh(false);
-  const rd = res.body.getReader(), dec = new TextDecoder(); let buf = '', newest = null;
-  while (true) {
-    const { value, done } = await rd.read(); if (done) break; buf += dec.decode(value, { stream: true });
-    let i; while ((i = buf.indexOf('\n')) >= 0) {
-      const line = buf.slice(0, i); buf = buf.slice(i + 1); if (!line.trim()) continue; const ev = JSON.parse(line);
-      if (ev.type === 'status') $('#live').textContent = ev.text;
-      else if (ev.type === 'error') $('#live').innerHTML = `<span class="err">${esc(ev.text)}</span>`;
-      else if (ev.type === 'final') { newest = ev.new_versions?.at(-1) || null; $('#live').textContent = ''; }
-    }
-  }
-  setBusy(false); clearPins(); clearMeasures();
-  await refresh(!!newest);
-};
-
-// ---------- lineage, family, fork ----------
-function renderLineage() {
-  const lin = state.spec.lineage; if (!lin) { $('#lineage').textContent = ''; return; }
-  $('#lineage').innerHTML = `${lin.mode === 'derive' ? 'derives from' : 'copied from'} <b data-p="${lin.parent}">${lin.parent.replace(/_/g, ' ')}</b> v${String(lin.from_version).padStart(3, '0')}`;
-  $('#lineage b').onclick = () => { $('#parts').value = lin.parent; selectPart(lin.parent); };
-}
-async function renderFamily() {
-  const fam = await (await fetch('/api/family')).json();
-  const byN = Object.fromEntries(fam.nodes.map(n => [n.name, n]));
-  let root = byN[state.part]; while (root?.lineage && byN[root.lineage.parent]) root = byN[root.lineage.parent];
-  const inFam = new Set(); const kidsOf = {}; fam.edges.forEach(e => (kidsOf[e.parent] ||= []).push(e.child));
-  const walk = n => { inFam.add(n); (kidsOf[n] || []).forEach(walk); }; if (root) walk(root.name);
-  const wrap = $('#family'); wrap.innerHTML = `<div class="tlwrap"></div><div class="famlist"></div>`;
-  if (root) drawTimelineVertical(wrap.querySelector('.tlwrap'), { nodes: fam.nodes.filter(n => inFam.has(n.name)), edges: fam.edges.filter(e => inFam.has(e.child)) },
-    { roots: [root], current: { part: state.part, version: state.version?.version }, onPick: async (p, v) => { if (p !== state.part) { $('#parts').value = p; await selectPart(p); } if (v) { const vv = state.spec.versions.find(x => x.version === v); if (vv) await showVersion(vv); } } });
-  await renderFamilyList(fam, wrap.querySelector('.famlist'), inFam);
-}
-async function renderFamilyList(fam, into, inFam) {
-  const kids = {}; fam.edges.forEach(e => (kids[e.parent] ||= []).push(e));
-  const byName = Object.fromEntries(fam.nodes.map(n => [n.name, n]));
-  const roots = fam.nodes.filter(n => !n.lineage);
-  const node = (n, edge) => `<li><div class="node ${n.name === state.part ? 'on' : ''}" data-p="${n.name}"><span class="nm">${n.name.replace(/_/g, ' ')}</span><span class="ct">${n.versions} version${n.versions === 1 ? '' : 's'}</span>
-      <span class="why">${edge ? `${edge.mode === 'derive' ? 'derives from' : 'copied from'} v${String(edge.at).padStart(3, '0')}${n.lineage?.note ? ' — ' + esc(n.lineage.note) : ''}` : (n.latest ? esc(n.latest.message) : 'not built yet')}</span></div>
-      ${(kids[n.name] || []).length ? `<ul>${kids[n.name].map(e => byName[e.child] ? node(byName[e.child], e) : '').join('')}</ul>` : ''}</li>`;
-  const others = roots.filter(r => !inFam.has(r.name));
-  into.innerHTML = (others.length ? `<p style="color:var(--ink-3);font-size:12.5px;margin:14px 0 6px">Other families</p><ul class="fam">${others.map(r => node(r, null)).join('')}</ul>` : '') + `<p style="margin:14px 0 0"><a href="/library.html" style="color:var(--ink-2)">Open the Library</a> to pose thumbnails, delete, or restore.</p>`;
-  into.querySelectorAll('.node').forEach(el => el.onclick = () => { $('#parts').value = el.dataset.p; selectPart(el.dataset.p); });
-}
-function openFork(fromVersion) {
-  const v = fromVersion || state.version?.version; if (!v) return;
-  $('#forkdlg').dataset.from = v; $('#fork-from').textContent = `${state.part.replace(/_/g, ' ')} v${String(v).padStart(3, '0')}`;
-  $('#fork-name').value = ''; $('#fork-note').value = ''; $('#forkdlg').classList.add('on'); $('#fork-name').focus();
-}
-$('#forkbtn').onclick = () => openFork();
-// ---------- target printer ----------
-const FITLBL = { fits: 'fits the bed', rotate: 'fits turned 90°', diagonal: 'fits diagonally', too_big: 'too big for the bed', unknown: '—' };
-async function renderPrinter() {
-  const d = await (await fetch('/api/printers')).json();
-  const cur = state.spec?.printer || {};
-  $('#prsel').innerHTML = Object.entries(d.printers).map(([k, p]) =>
-    `<option value="${k}" ${k === cur.key ? 'selected' : ''}>${esc(p.name)}${k === d.default ? ' (default)' : ''}</option>`).join('');
-  const fit = state.spec?.versions?.length ? await (await fetch(`/api/parts/${state.part}/fit`)).json() : { status: 'unknown' };
-  const el = $('#prfit'); el.className = fit.status || 'unknown';
-  el.textContent = FITLBL[fit.status] || '—';
-  el.title = [fit.how, fit.over?.some(v => v > 0) ? `over by ${fit.over.filter(v => v > 0).map(v => v + ' mm').join(', ')}` : '',
-              fit.bed ? `bed ${fit.bed.map(Math.round).join('×')} mm` : ''].filter(Boolean).join(' · ');
-  $('#tb-pr').textContent = `${cur.name || '—'}${fit.status && fit.status !== 'unknown' ? ' · ' + FITLBL[fit.status] : ''}`;
-}
-$('#prsel').onchange = async () => {
-  await fetch(`/api/parts/${state.part}/printer`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ printer: $('#prsel').value }) });
-  state.spec = await (await fetch(`/api/parts/${state.part}`)).json();
-  await renderPrinter();
-  hint('Target printer set — Claude designs to it from here on'); setTimeout(() => hint(''), 2600);
-};
-// ---------- tiny prompt dialog ----------
-function ask(title, value = '') {
-  return new Promise(res => {
-    const d = $('#askdlg'); $('#ask-title').textContent = title; $('#ask-in').value = value; d.classList.add('on'); $('#ask-in').focus(); $('#ask-in').select();
-    const done = v => { d.classList.remove('on'); $('#ask-ok').onclick = $('#ask-cancel').onclick = null; $('#ask-in').onkeydown = null; res(v); };
-    $('#ask-ok').onclick = () => done($('#ask-in').value.trim()); $('#ask-cancel').onclick = () => done(null);
-    $('#ask-in').onkeydown = e => { if (e.key === 'Enter') $('#ask-ok').click(); if (e.key === 'Escape') $('#ask-cancel').click(); };
-  });
-}
-$('#renbtn').onclick = async () => {
-  const v = await ask(`Rename "${state.part.replace(/_/g, ' ')}" — letters, digits, underscores`, state.part); if (!v || v === state.part) return;
-  const r = await fetch(`/api/parts/${state.part}/rename`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ new_name: v }) });
-  if (!r.ok) { hint((await r.json()).detail || 'Rename failed'); setTimeout(() => hint(''), 4000); return; }
-  const { name } = await r.json(); await loadPartsList(); $('#parts').value = name; await selectPart(name);
-};
-// ---------- new part from a brief ----------
-state.newAttach = [];
-function renderNewAttach() { $('#new-attach').innerHTML = state.newAttach.map((a, i) => `<div class="a"><img src="${a}" alt=""></div>`).join(''); }
-$('#newbtn').onclick = () => { $('#newdlg').classList.add('on'); $('#forkdlg').classList.remove('on'); $('#new-name').focus(); };
-$('#new-cancel').onclick = () => $('#newdlg').classList.remove('on');
-$('#new-name').onkeydown = e => { if (e.key === 'Escape') $('#new-cancel').click(); };
-$('#new-brief').addEventListener('paste', e => { for (const it of e.clipboardData.items) if (it.type.startsWith('image/')) { const f = it.getAsFile(); const rd = new FileReader(); rd.onload = () => { state.newAttach.push(rd.result); renderNewAttach(); }; rd.readAsDataURL(f); e.preventDefault(); } });
-$('#new-go').onclick = async () => {
-  const name = $('#new-name').value.trim(), brief = $('#new-brief').value.trim();
-  if (!name) { $('#new-name').focus(); return; } if (!brief) { $('#new-brief').focus(); return; }
-  $('#new-go').disabled = true; $('#new-go').textContent = 'Starting…';
-  const res = await fetch('/api/parts/new', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, brief, attachments: state.newAttach }) });
-  if (!res.ok) { const e = await res.json(); hint(e.detail || 'Could not start'); setTimeout(() => hint(''), 4000); $('#new-go').disabled = false; $('#new-go').textContent = 'Ask Claude to build it'; return; }
-  $('#newdlg').classList.remove('on'); $('#new-go').disabled = false; $('#new-go').textContent = 'Ask Claude to build it'; state.newAttach = []; renderNewAttach();
-  const created = name.toLowerCase().replace(/[ -]/g, '_');
-  await loadPartsList(); $('#parts').value = created; state.part = created; localStorage.setItem('labcad.part', created); history.replaceState(null, '', `?part=${created}`);
-  clearPins(); clearMeasures(); state.version = null; if (mesh) { scene.remove(mesh); mesh = null; }
-  state.spec = { name: created, doc: '', params: {}, knobs: [], versions: [], chat: [{ role: 'user', text: brief, ts: new Date().toISOString(), pins: [] }], lineage: null };
-  renderChat(); renderVersions(); renderKnobs(); document.querySelector('#tabs button[data-pane=talk]').click();
-  setBusy(true); $('#live').textContent = 'Claude is designing it…';
-  const rd = res.body.getReader(), dec = new TextDecoder(); let buf = '';
-  while (true) {
-    const { value, done } = await rd.read(); if (done) break; buf += dec.decode(value, { stream: true });
-    let i; while ((i = buf.indexOf('\n')) >= 0) {
-      const line = buf.slice(0, i); buf = buf.slice(i + 1); if (!line.trim()) continue; const ev = JSON.parse(line);
-      if (ev.type === 'status') $('#live').textContent = ev.text;
-      else if (ev.type === 'error') $('#live').innerHTML = `<span class="err">${esc(ev.text)}</span>`;
-      else if (ev.type === 'final') $('#live').textContent = '';
-    }
-  }
-  setBusy(false); await refresh(true);
-};
-$('#fork-cancel').onclick = () => $('#forkdlg').classList.remove('on');
-$('#fork-name').onkeydown = e => { if (e.key === 'Enter') $('#fork-go').click(); if (e.key === 'Escape') $('#fork-cancel').click(); };
-$('#fork-go').onclick = async () => {
-  const name = $('#fork-name').value.trim(); if (!name) { $('#fork-name').focus(); return; }
-  $('#fork-go').disabled = true; $('#fork-go').textContent = 'Creating…';
-  const r = await fetch(`/api/parts/${state.part}/fork`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ new_name: name, from_version: Number($('#forkdlg').dataset.from), mode: document.querySelector('input[name=fmode]:checked').value, note: $('#fork-note').value.trim() }) });
-  $('#fork-go').disabled = false; $('#fork-go').textContent = 'Create variant';
-  if (!r.ok) { const e = await r.json(); hint(e.detail || e.error?.split('\n').filter(Boolean).pop() || 'Fork failed'); setTimeout(() => hint(''), 4000); return; }
-  const { name: created } = await r.json(); $('#forkdlg').classList.remove('on');
-  await loadPartsList(); $('#parts').value = created; await selectPart(created);
-};
-
-document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { document.querySelectorAll('#tabs button').forEach(x => x.setAttribute('aria-selected', String(x === b))); document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === `pane-${b.dataset.pane}`)); });
-loadParts().then(() => { if (new URLSearchParams(location.search).get('new')) $('#newbtn').click(); });
-</script>
+<script type="module" src="studio.js"></script>
 </body>
 </html>

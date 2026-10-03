@@ -3,18 +3,33 @@
 This is a parametric-CAD workshop. The user describes a part; you own the geometry, written as build123d Python.
 Favor machining/ergonomic features (chamfers, lead-ins, fillets, finger grooves, engraved labels) over sculptural
 forms. Be brief, and be honest when a request would make a worse part.
-
 First time in this repo, or the Studio isn't running yet? Follow `SETUP.md`.
 
 ## Layout
 - `parts/<name>/model.py` — `P = dict(...)` of every dimension + `RANGES` (slider min/max/step) + `def build(P) -> Part` (build123d, algebra mode). Origin = part centre, Z up, mm.
 - `parts/<name>/params.json` — the *live* knob values (override `model.P`). The Studio sliders write here.
-- `parts/<name>/versions/vNNN.{stl,step,png,json}` — every build, numbered. Never edit or delete.
+- `parts/<name>/versions/vNNN.{stl,step,png,json,py}` — every build, numbered; `versions/vNNN/` holds each component's print files + `plate.3mf`. Never edit or delete.
+- `parts/<name>/printed.json` — which version of each component the user has physically printed (they mark it in the Print tab).
 - `parts/<name>/chat.jsonl` — Studio conversation. `session.json` — your resumed session id.
 - `build.py <part> -m "msg" [--set k=v]` — build + export + render → next version. Prints a JSON line.
+- `assembly.py` (Comp, normalize/realize — shared by builds and previews), `knobs.py` (label/help/group resolution), `preview_worker.py` (warm builder behind the Knobs tab).
 - `render.py part.stl` — 4-view PNG (pyrender/EGL) + `_thumb.png` iso.
 - `drawing.py <part> <tag>` — blueprint SVG (third-angle top/front/right, HLR hidden lines, envelope + auto hole Ø/pitch dims, title block). Studio drafts it on demand (rail button / B).
 - `studio/` — the web dash (FastAPI + three.js) on :8505 (see SETUP.md).
+
+## Assemblies — anything that prints as more than one piece
+- `build(P)` returns `{name: Comp(part, at=Location)}` (`from assembly import Comp`). Build each piece **the way it prints** (bed face at z = 0, no supports) and let `at` place it in the assembly. A single solid is still fine — it becomes one component called "part".
+- `COMPONENTS = {name: dict(label=, color="#hex", qty=, filament=, note=)}` — label is what the user sees; `note` is a one-line print/assembly instruction; `filament` when it matters (a light seal in black). Colours are for telling pieces apart on screen, not filament colours.
+- **Never** add a `show`/`which`/`cutaway` knob to switch between pieces or views — the Studio does that (legend, isolate, explode, section).
+- One build = one assembly version. `build.py` writes each component's print STL/STEP to `versions/vNNN/`, a labelled assembly STEP, a 3MF plate, and records per-component `fingerprint` + `changes` (new/changed/same). The Print tab shows the user which pieces changed since they last printed them, so **don't rebuild components you didn't mean to change** — keep shared params stable.
+- The user's message comes with a **scope**: the whole assembly, or one component. Whole assembly → change shared params/geometry and keep every mating feature consistent (key ↔ slot, door ↔ rails). One component → change that one; touch another only when a mating feature must follow, and say so. Pins name the component they landed on.
+- Reply with which components changed (= what to reprint). Fit is checked **per component** against the bed — the assembly envelope doesn't matter.
+- A derived part whose base is an assembly gets a dict back from `base_build(P)`: modify the entry you need (`comps["door"] = Comp(comps["door"].part - cut, comps["door"].at)`) and return the dict.
+
+## Knobs — `KNOBS` in every model
+- `KNOBS = {key: dict(label="Cutout width", group="Cutout", help="one plain sentence", unit="mm", view=False, advanced=False, choices={0: "a", 1: "b"})}`. **Write it for every knob of every new model** — the user reads labels, not variable names. Group by what a person adjusts (Cutout, Fit & seal, Pull bar, Finish), not by code structure. Mark fiddly ones `advanced=True`.
+- `view=True` for knobs that only move things on screen (a door's open position): they preview live and never create a version.
+- The user previews knob changes live (`preview_worker.py`, nothing saved) and only saves the ones they like — so a version is a decision, not a drag. Missing labels fall back to the key name + the comment on its line in `P`, so keep those comments meaningful too.
 
 ## Families (forks)
 - `parts/<name>/lineage.json` = `{parent, from_version, mode}`; `versions/vNNN.py` snapshots model.py so every version is reproducible; "Make this current" restores one.

@@ -6,3 +6,19 @@ parts/*/thumb.jpg
 parts/*/pose.json
 parts/*/shots/
 parts/*/versions/*_drawing.svg
+
+# Generated models: regenerable from versions/vNNN.py
+*.stl
+*.STL
+*.step
+*.STEP
+*.stp
+*.3mf
+*.obj
+*.glb
+*.gcode
+
+# Studio scratch: live knob previews + the preview worker's log
+parts/*/.preview/
+studio/*.log
+.claude/worktrees/

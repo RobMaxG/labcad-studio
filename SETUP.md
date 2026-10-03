@@ -47,18 +47,22 @@ environment, and put the same value in the systemd unit in step 5.
 
 ## 4. Build the example parts (smoke test)
 
-The repo ships four example parts with no build history. Build each one once to make v001. Do
+The repo ships five example parts with no build history. Build each one once to make v001. Do
 `microfuge_rack` first, because `microfuge_strip_16` is a *derived* fork of it (it imports the rack's `build()`):
 
 ```bash
-for p in microfuge_rack microfuge_strip_16 falcon_50_rack tube_1_5ml_clone; do
+for p in microfuge_rack microfuge_strip_16 falcon_50_rack tube_1_5ml_clone sliding_viewport_w_retaining_frame; do
   .venv/bin/python build.py $p -m "v1 — example"
 done
 ```
 
-Each prints one JSON line (envelope, volume, mass). The strip takes ~15 s and the others a few seconds.
-**Open one of the PNGs** (`parts/microfuge_rack/versions/v001.png`) and look at it: you should see a
+Each prints one JSON line (envelope, volume, mass, and a `components` list). The strip takes ~15 s and the others
+a few seconds. **Open one of the PNGs** (`parts/microfuge_rack/versions/v001.png`) and look at it: you should see a
 4×6 tube rack from four angles. A blank or black image means the rendering backend is wrong; go back to step 3.
+
+`sliding_viewport_w_retaining_frame` is an **assembly**: its PNG shows three pieces in three colours, and
+`parts/sliding_viewport_w_retaining_frame/versions/v001/` should hold `frame`, `door` and `key` STL + STEP files
+plus `plate.3mf`. If `plate.3mf` is missing, the build printed why on stderr; the per-piece files are what matter.
 
 This also creates `printers.json` with two placeholder printer profiles.
 
@@ -95,7 +99,10 @@ network you don't trust, and never port-forward it to the internet.
 
 ## 6. Verify the Studio end to end
 
-1. `curl -s localhost:8505/api/parts` should list the four parts with `"versions":1`.
+1. `curl -s localhost:8505/api/parts` should list the five parts with `"versions":1`.
+   Then check the live knob preview (it builds into a scratch folder and creates no version):
+   `curl -s -X POST localhost:8505/api/parts/microfuge_rack/preview -H 'content-type: application/json' -d '{"params":{"pitch":19}}'`
+   should return a `components` list within a few seconds (the first one is slower: it starts a warm worker).
 2. Open the Studio in a browser (or have the user open it). The part should load in the 3D viewer. The
    viewer pulls three.js from a CDN, so it needs internet access.
 3. Test the AI loop once: in the **Talk** tab on `microfuge_rack`, send something small like
@@ -116,7 +123,10 @@ Tell the user, briefly:
 - where the Studio is (URL) and how it starts (service or command);
 - the three ways to begin a part: **New** (describe it in a sentence or two), **Fork** an existing part, or
   ask you to write a `model.py` directly;
-- that pins (P) plus a message in **Talk** is how they ask for changes, and pasted photos help a lot;
+- that pins (P) plus a message in **Talk** is how they ask for changes, and pasted photos help a lot; for an
+  assembly they can aim a message at one piece with the **About** picker;
+- that **Knobs** preview live and only save when they press *Save as version*, and the **Print** tab has every
+  piece's files plus a 3MF plate, and tracks which pieces need reprinting;
 - that tube and labware dimensions tagged `recalled`/`estimated` should be checked with calipers before a
   print that matters.
 
@@ -126,5 +136,6 @@ From then on, `CLAUDE.md` is your working contract in this repo. Read it before 
 
 - `.claude/settings.json` sets `worktree.bgIsolation: none`, because the Studio serves this checkout live and
   edits made in a separate worktree would never show up. Keep it.
-- Build outputs (`parts/*/versions/`) are large-ish binaries. Whether to commit them is the user's call;
-  `versions/vNNN.py` snapshots are what make old versions reproducible if they do.
+- Generated models (STL, STEP, 3MF) are gitignored: they're large and regenerable from `versions/vNNN.py`.
+  The small version records (`vNNN.json`, `vNNN.py`, renders) can be committed; whether to is the user's call.
+- Knob previews build into `parts/*/.preview/` and log to `studio/preview_worker.log`; both are scratch and ignored.

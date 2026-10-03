@@ -3,8 +3,9 @@
 
 The "Send to Claude" runner is deliberately scoped: acceptEdits inside this repo plus an
 allowlist of build.py / render.py. Nothing else gets to run without a human.
+Knob previews go through a warm worker (preview_worker.py) and never create versions.
 """
-import asyncio, base64, json, os, re, shutil, signal, sys, time
+import asyncio, base64, io, json, os, re, shutil, signal, sys, time, uuid, zipfile
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
@@ -22,9 +23,11 @@ ALLOWED_TOOLS = ["Bash(.venv/bin/python build.py:*)", "Bash(.venv/bin/python ren
 sys.path.insert(0, str(ROOT))
 from build import effective_params  # noqa: E402
 import printers as pr  # noqa: E402
+import knobs as kn  # noqa: E402
 
 app = FastAPI(title="LabCAD Studio")
 BUILD_LOCK = asyncio.Lock()   # one build/Claude run at a time — they share params.json
+DRAW_LOCK = asyncio.Lock()    # drafting only reads a version, so it never waits behind an Claude run
 
 
 def part_dir(name):
@@ -35,7 +38,7 @@ def part_dir(name):
 
 
 def versions(name):
-    return [json.loads(p.read_text()) for p in sorted((PARTS / name / "versions").glob("v*.json"))]
+    return [json.loads(p.read_text()) for p in sorted((PARTS / name / "versions").glob("v[0-9][0-9][0-9].json"))]
 
 
 def heuristic_range(k, v):
@@ -55,12 +58,15 @@ def lineage(name):
     return json.loads(f.read_text()) if f.exists() else None
 
 
+def printed(name):
+    f = PARTS / name / "printed.json"
+    return json.loads(f.read_text()) if f.exists() else {}
+
+
 def spec(name):
     mod, P = effective_params(name)
-    ranges = getattr(mod, "RANGES", {})
-    knobs = [dict(key=k, value=v, range=list(ranges[k]) if k in ranges else heuristic_range(k, v)) for k, v in P.items()]
-    return dict(name=name, doc=(mod.__doc__ or "").strip(), params=P, knobs=knobs, lineage=lineage(name),
-                printer=pr.prof(name))
+    return dict(name=name, doc=(mod.__doc__ or "").strip(), params=P, knobs=kn.resolve(mod, P), lineage=lineage(name),
+                printer=pr.prof(name), printed=printed(name))
 
 
 def log_chat(name, entry):
@@ -122,20 +128,22 @@ def get_thumb(name):
 
 
 @app.get("/api/parts/{name}/versions/{tag}/drawing")
-async def drawing(name, tag):
-    """Blueprint sheet for a version; drafted on first request, cached beside the version."""
+async def drawing(name, tag, c: str | None = None):
+    """Blueprint sheet for a version (or one component of it); drafted on first request, cached beside the version."""
     d = part_dir(name)
     if tag == "latest":
         vs = versions(name)
         if not vs:
             raise HTTPException(404)
         tag = vs[-1]["tag"]
-    f = d / "versions" / f"{tag}_drawing.svg"
+    comp = Path(c).name if c else None
+    f = d / "versions" / (f"{tag}_{comp}_drawing.svg" if comp else f"{tag}_drawing.svg")
     if not f.exists():
-        if not (d / "versions" / f"{tag}.step").exists():
+        src = d / "versions" / tag / f"{comp}.step" if comp else d / "versions" / f"{tag}.step"
+        if not src.exists():
             raise HTTPException(404)
-        async with BUILD_LOCK:
-            proc = await asyncio.create_subprocess_exec(str(PY), str(ROOT / "drawing.py"), name, tag, cwd=ROOT,
+        async with DRAW_LOCK:
+            proc = await asyncio.create_subprocess_exec(str(PY), str(ROOT / "drawing.py"), name, tag, *([comp] if comp else []), cwd=ROOT,
                                                         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
             out, err = await proc.communicate()
         if proc.returncode != 0:
@@ -278,17 +286,107 @@ def set_part_printer(name, req: PartPrinterReq):
     return dict(printer=pr.prof(name), fit=part_fit(name))
 
 
-def part_fit(name, key=None):
+FIT_ORDER = ["fits", "rotate", "diagonal", "unknown", "too_big"]
+
+
+def part_fit(name, key=None, version=None):
+    """Bed fit for every component of a version (the assembly envelope is irrelevant — you print the pieces).
+    Top-level fields describe the worst component, so single-part callers read it unchanged."""
     vs = versions(name)
     if not vs:
         return None
-    return pr.fit_check(vs[-1]["envelope"], part=name, key=key)
+    v = next((x for x in vs if x["version"] == version), vs[-1]) if version else vs[-1]
+    comps = v.get("components") or [dict(name="part", label=name, envelope=v["envelope"])]
+    fits = [dict(pr.fit_check(c["envelope"], part=name, key=key), name=c["name"], label=c.get("label", c["name"])) for c in comps]
+    worst = max(fits, key=lambda f: FIT_ORDER.index(f["status"]) if f["status"] in FIT_ORDER else 0)
+    return dict(worst, components=fits, worst=worst["name"] if len(fits) > 1 else None)
 
 
 @app.get("/api/parts/{name}/fit")
-def get_fit(name, printer: str | None = None):
+def get_fit(name, printer: str | None = None, version: int | None = None):
     part_dir(name)
-    return part_fit(name, printer) or dict(status="unknown")
+    return part_fit(name, printer, version) or dict(status="unknown")
+
+
+# ---------- what's been physically printed (so the Print tab can say what needs reprinting) ----------
+class PrintedReq(BaseModel):
+    component: str
+    version: int | None = None       # None = forget it
+
+
+@app.post("/api/parts/{name}/printed")
+def set_printed(name, req: PrintedReq):
+    d = part_dir(name)
+    rec = printed(name)
+    if req.version is None:
+        rec.pop(req.component, None)
+    else:
+        v = next((x for x in versions(name) if x["version"] == req.version), None)
+        if not v:
+            raise HTTPException(404, "no such version")
+        c = next((c for c in v.get("components") or [] if c["name"] == req.component), None)
+        rec[req.component] = dict(version=req.version, tag=v["tag"], ts=time.strftime("%Y-%m-%dT%H:%M:%S"),
+                                  fingerprint=c["fingerprint"] if c else None)
+    (d / "printed.json").write_text(json.dumps(rec, indent=2))
+    return rec
+
+
+# ---------- live knob preview: a warm worker builds into a scratch dir; nothing is versioned ----------
+class PreviewWorker:
+    def __init__(self):
+        self.proc, self.lock = None, asyncio.Lock()
+
+    async def _start(self):
+        log = open(ROOT / "studio" / "preview_worker.log", "ab")
+        self.proc = await asyncio.create_subprocess_exec(
+            str(PY), str(ROOT / "preview_worker.py"), cwd=ROOT, stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE, stderr=log, limit=16 * 1024 * 1024)
+
+    async def run(self, req, timeout=90):
+        async with self.lock:
+            if self.proc is None or self.proc.returncode is not None:
+                await self._start()
+            self.proc.stdin.write((json.dumps(req) + "\n").encode())
+            await self.proc.stdin.drain()
+            try:
+                line = await asyncio.wait_for(self.proc.stdout.readline(), timeout)
+            except asyncio.TimeoutError:
+                self.proc.kill(); self.proc = None
+                return dict(ok=False, error=f"Preview took longer than {timeout} s and was stopped.")
+            if not line:
+                self.proc = None
+                return dict(ok=False, error="The preview worker crashed (see studio/preview_worker.log); try again.")
+            return json.loads(line)
+
+
+PREVIEW = PreviewWorker()
+
+
+class PreviewReq(BaseModel):
+    params: dict = {}
+
+
+@app.post("/api/parts/{name}/preview")
+async def preview(name, req: PreviewReq):
+    d = part_dir(name)
+    pid = time.strftime("%H%M%S") + uuid.uuid4().hex[:6]
+    root = d / ".preview"
+    res = await PREVIEW.run(dict(id=pid, part=name, params=req.params, out=str(root / pid)))
+    for old in sorted(root.glob("*"))[:-4] if root.exists() else []:   # keep the last few, drop the rest
+        shutil.rmtree(old, ignore_errors=True)
+    if not res.get("ok"):
+        return JSONResponse(status_code=422, content=dict(error=res.get("error", "preview failed")))
+    for c in res["components"]:
+        c["url"] = f"/api/parts/{name}/preview/{pid}/{c['name']}.stl"
+    return res
+
+
+@app.get("/api/parts/{name}/preview/{pid}/{fn}")
+def preview_file(name, pid, fn):
+    f = part_dir(name) / ".preview" / Path(pid).name / Path(fn).name
+    if not f.exists():
+        raise HTTPException(404)
+    return FileResponse(f)
 
 
 @app.get("/api/parts/{name}/pose")
@@ -349,14 +447,27 @@ def delete_version(name, tag):
         raise HTTPException(409, "That's the only version; delete the part instead.")
     if not (d / "versions" / f"{tag}.json").exists():
         raise HTTPException(404)
+    was_latest = vs[-1]["tag"] == tag
     TRASH.mkdir(exist_ok=True)
     tid = f"{name}-{tag}-{time.strftime('%Y%m%d-%H%M%S')}"
     td = TRASH / tid
     td.mkdir()
-    for f in (d / "versions").glob(f"{tag}.*"):
-        shutil.move(str(f), str(td / f.name))
+    snap_was = (d / "versions" / f"{tag}.py").read_text() if (d / "versions" / f"{tag}.py").exists() else None
+    for f in [*(d / "versions").glob(f"{tag}.*"), *(d / "versions").glob(f"{tag}_*"), d / "versions" / tag]:
+        if f.exists():
+            shutil.move(str(f), str(td / f.name))
     (td / "_trash.json").write_text(json.dumps(dict(kind="version", name=name, tag=tag, ts=time.strftime("%Y-%m-%dT%H:%M:%S"))))
-    return dict(ok=True, trash_id=tid)
+    rolled = None
+    if was_latest:
+        # The working state came from the version just deleted; put it back to the new latest, or the next
+        # knob tweak / Claude run would silently build on top of the experiment that was thrown away.
+        prev = versions(name)[-1]
+        (d / "params.json").write_text(json.dumps(prev["params"], indent=2))
+        snap = d / "versions" / f"{prev['tag']}.py"
+        if snap.exists() and snap_was is not None and (d / "model.py").read_text() == snap_was:
+            shutil.copy(snap, d / "model.py")
+        rolled = prev["tag"]
+    return dict(ok=True, trash_id=tid, rolled_back_to=rolled)
 
 
 @app.get("/api/trash")
@@ -387,8 +498,9 @@ def restore_trash(tid):
         dest = PARTS / m["name"] / "versions"
         if not dest.exists():
             raise HTTPException(409, f"part {m['name']!r} is gone; restore it first")
-        for f in td.glob(f"{m['tag']}.*"):
-            shutil.move(str(f), str(dest / f.name))
+        for f in [*td.glob(f"{m['tag']}.*"), *td.glob(f"{m['tag']}_*"), td / m["tag"]]:
+            if f.exists():
+                shutil.move(str(f), str(dest / f.name))
         shutil.rmtree(td)
     return dict(ok=True, **m)
 
@@ -522,14 +634,46 @@ def get_part(name):
     return s
 
 
-@app.get("/api/parts/{name}/versions/{tag}/{ext}")
-def get_file(name, tag, ext):
+def resolve_tag(name, tag):
     if tag == "latest":
         vs = versions(name)
         if not vs:
             raise HTTPException(404)
-        tag = vs[-1]["tag"]
-    f = part_dir(name) / "versions" / f"{tag}.{ext}"
+        return vs[-1]["tag"]
+    return Path(tag).name
+
+
+@app.get("/api/parts/{name}/versions/{tag}/c/{fn}")
+def get_component_file(name, tag, fn):
+    """One component's print-ready file (frame.stl, door.step, plate.3mf)."""
+    tag = resolve_tag(name, tag)
+    f = part_dir(name) / "versions" / tag / Path(fn).name
+    if not f.exists() or f.suffix not in (".stl", ".step", ".3mf"):
+        raise HTTPException(404)
+    return FileResponse(f, filename=f"{name}_{tag}_{f.name}")
+
+
+@app.get("/api/parts/{name}/versions/{tag}/{ext}")
+def get_file(name, tag, ext):
+    tag = resolve_tag(name, tag)
+    vdir = part_dir(name) / "versions"
+    if ext == "zip":                                   # every print in one download
+        cdir = vdir / tag
+        if not cdir.is_dir():
+            raise HTTPException(404, "this version predates components; download its STL instead")
+        info = json.loads((vdir / f"{tag}.json").read_text())
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+            for c in info.get("components") or []:
+                for sfx in ("stl", "step"):
+                    f = cdir / f"{c['name']}.{sfx}"
+                    if f.exists():
+                        z.write(f, f"{name}_{tag}/{c['name']}{'' if c.get('qty', 1) == 1 else '_x' + str(c['qty'])}.{sfx}")
+            if (cdir / "plate.3mf").exists():
+                z.write(cdir / "plate.3mf", f"{name}_{tag}/plate.3mf")
+        return StreamingResponse(iter([buf.getvalue()]), media_type="application/zip",
+                                 headers={"content-disposition": f'attachment; filename="{name}_{tag}.zip"'})
+    f = vdir / f"{tag}.{ext}"
     if not f.exists() or ext not in ("stl", "step", "png", "json"):
         raise HTTPException(404)
     return FileResponse(f, filename=f"{name}_{tag}.{ext}" if ext in ("stl", "step") else None)
@@ -561,6 +705,7 @@ class Pin(BaseModel):
     y: float
     z: float
     note: str = ""
+    component: str | None = None
 
 
 class FeedbackReq(BaseModel):
@@ -570,6 +715,7 @@ class FeedbackReq(BaseModel):
     measures: list[dict] = []
     shot: str | None = None          # data-URL jpeg of the viewport, pins drawn in
     attachments: list[str] = []      # data-URL images the user pasted/dropped
+    scope: str | None = None         # a component name, or None = the whole assembly
 
 
 def save_data_url(name, data_url, stem):
@@ -614,11 +760,29 @@ def compose_prompt(name, req: FeedbackReq, P, latest, shots):
              "The user says:", req.text.strip() or "(no text — see pins)", ""]
     if shots:
         lines.append("Images (Read each one before deciding anything):")
-        lines += [f"  parts/{name}/shots/{fn} — {'the user\'s viewport right now, their pins numbered on it' if fn.endswith('_view.jpg') else 'a photo the user attached'}" for fn in shots]
+        lines += [f"  parts/{name}/shots/{fn} — {'The user\'s viewport right now, their pins numbered on it' if fn.endswith('_view.jpg') else 'a photo the user attached'}" for fn in shots]
+        lines.append("")
+    vs = versions(name)
+    cur = next((v for v in vs if v["version"] == (req.version or latest)), vs[-1] if vs else None)
+    comps = (cur or {}).get("components") or []
+    if len(comps) > 1:
+        lines.append(f"This part is an ASSEMBLY of {len(comps)} components (see 'Assemblies' in CLAUDE.md):")
+        for c in comps:
+            lines.append(f"  {c['name']:>12} — {c['label']}: prints {'×'.join(str(round(e)) for e in c['envelope'])} mm, "
+                         f"{c['mass_g_pla']} g{' ×' + str(c['qty']) if c.get('qty', 1) > 1 else ''}"
+                         + (f"; {c['note']}" if c.get("note") else ""))
+        if req.scope:
+            lab = next((c["label"] for c in comps if c["name"] == req.scope), req.scope)
+            lines.append(f"The user scoped this message to the **{lab}** ({req.scope}). Change that component; touch the others "
+                         "only where a mating feature has to follow, and say so.")
+        else:
+            lines.append("The user scoped this message to the WHOLE ASSEMBLY. Make the change wherever it belongs and keep every "
+                         "mating feature consistent; the version record will list which components changed.")
         lines.append("")
     if req.pins:
-        lines.append("Pins the user placed on the surface (model coordinates, mm; origin = part centre, Z up):")
-        lines += [f"  {p.n}. ({p.x:.1f}, {p.y:.1f}, {p.z:.1f}) — {p.note or 'no note'}" for p in req.pins]
+        lines.append("Pins the user placed on the surface (assembly coordinates, mm, Z up; the component each pin landed on is named):")
+        lines += [f"  {p.n}. ({p.x:.1f}, {p.y:.1f}, {p.z:.1f})" + (f" on {p.component}" if p.component else "")
+                  + f" — {p.note or 'no note'}" for p in req.pins]
         lines.append("")
     if req.measures:
         lines += ["Measurements the user took:"] + [f"  {m.get('label', '')}: {m.get('mm', 0):.2f} mm" for m in req.measures] + [""]
@@ -632,7 +796,8 @@ def compose_prompt(name, req: FeedbackReq, P, latest, shots):
               "Current params.json:", json.dumps(P), "",
               f"Make the change (edit parts/{name}/model.py and/or parts/{name}/params.json), rebuild with",
               f'  .venv/bin/python build.py {name} -m "<short what-changed>"',
-              "and reply in at most 4 short sentences — the reply is shown in the Studio chat next to the new version.",
+              "and reply in at most 4 short sentences — the reply is shown in the Studio chat next to the new version."
+              + (" For an assembly, name which components changed (= which the user has to reprint)." if len(comps) > 1 else ""),
               "If the request is genuinely ambiguous, don't guess: ask one question and skip the rebuild."]
     return "\n".join(lines)
 
@@ -652,7 +817,7 @@ async def feedback(name, req: FeedbackReq):
     for i, a in enumerate(req.attachments[:6], 1):
         shots.append(save_data_url(name, a, f"{stamp}_photo{i}"))
     prompt = compose_prompt(name, req, P, latest, shots)
-    log_chat(name, dict(role="user", text=req.text, pins=[p.model_dump() for p in req.pins], shots=shots,
+    log_chat(name, dict(role="user", text=req.text, pins=[p.model_dump() for p in req.pins], shots=shots, scope=req.scope,
                         version=req.version or latest, ts=time.strftime("%Y-%m-%dT%H:%M:%S")))
 
     return StreamingResponse(run_claude(name, prompt, session_id, before, latest), media_type="application/x-ndjson")
@@ -756,7 +921,7 @@ async def new_part(req: NewPartReq):
     shots = [save_data_url(new, a, f"{stamp}_photo{i}") for i, a in enumerate(req.attachments[:6], 1)]
     log_chat(new, dict(role="user", text=req.brief, pins=[], shots=shots, version=None, ts=time.strftime("%Y-%m-%dT%H:%M:%S")))
     prompt = "\n".join([
-        f'[LabCAD Studio — NEW part "{new}". the user\'s brief:]', "", req.brief.strip(), "",
+        f'[LabCAD Studio — NEW part "{new}". The user\'s brief:]', "", req.brief.strip(), "",
         *(["Photos the user attached (Read each one first):"] + [f"  parts/{new}/shots/{fn}" for fn in shots] + [""] if shots else []),
         "Target printer for this part (design to it — bed size, hole shrink, clearances, min wall):",
         pr.describe(part=new), "",
@@ -765,6 +930,9 @@ async def new_part(req: NewPartReq):
         "designed to print flat without supports. Use `labware` for any standard item it holds and say which numbers are",
         "recalled/estimated. Bake in the usability details that make a part pleasant to use (lead-in chamfers, top/bottom bevels, corner fillets,",
         "finger access, engraved labels where they help).",
+        "If it should print as more than one piece, make it an ASSEMBLY (see 'Assemblies' in CLAUDE.md): build() returns",
+        "{name: Comp(part, at=...)} with each piece built in its print orientation, plus COMPONENTS labels. Never use a",
+        "`show` knob to switch between pieces. Always write KNOBS with a plain-English label + one-line help for every knob.",
         f'Then build it: .venv/bin/python build.py {new} -m "v1 — <one line>"  — look at the PNG, fix anything ugly, rebuild.',
         "Check the envelope against that bed before replying; if it doesn't fit, say so and offer the split or the smaller pitch.",
         "Reply in ≤5 sentences: what you built, the key dimensions, and the one or two assumptions the user should check.",
