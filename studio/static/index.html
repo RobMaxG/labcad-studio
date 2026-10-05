@@ -267,6 +267,9 @@
   /* talk: who/what a message is about */
   #scope{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-3)}
   #scope[hidden]{display:none}
+  #override{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-3);flex-wrap:wrap}
+  #override select{background:var(--bed-2);border:1px solid var(--line);border-radius:6px;padding:3px 6px;color:var(--ink);font-size:12.5px}
+  #override select.set{border-color:var(--marker);color:var(--marker)}
   #scope select{background:var(--bed-2);border:1px solid var(--line);border-radius:6px;padding:3px 6px;color:var(--ink);font-size:12.5px}
   .dp .pc{font-size:11px;font-weight:600;color:var(--ink-2);border-left:3px solid var(--c);padding-left:5px;flex:none;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #bp-comp{background:var(--panel);border:1px solid var(--line-2);border-radius:8px;padding:6px 8px}
@@ -348,6 +351,7 @@
         <div id="draftpins"></div>
         <div id="attach"></div>
         <div id="scope" hidden>About <select id="scope-sel" aria-label="What this message is about"></select></div>
+        <div id="override" title="Change the model or effort for this one message; your Account settings are used otherwise">Use <select id="ov-model" aria-label="Model for this message"></select><select id="ov-effort" aria-label="Effort for this message"></select></div>
         <textarea id="text" placeholder="Tell Claude what's wrong with it, or what you want next. Pins and a screenshot of this view go along; paste or drop photos too."></textarea>
         <button id="send">Send to Claude</button>
       </div>

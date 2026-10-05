@@ -26,6 +26,12 @@
   input{background:var(--bed-2);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%}
   .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   [hidden]{display:none!important}
+  .card+.card{margin-top:16px}
+  .card h2{margin:0;font-size:16px;font-weight:600}
+  .prefs{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+  label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--ink-2)}
+  select{background:var(--bed-2);border:1px solid var(--line);border-radius:6px;padding:7px 9px;color:var(--ink);font:inherit}
+  .help{font-size:12.5px;color:var(--ink-3);margin:0}
 </style>
 </head>
 <body>
@@ -45,6 +51,16 @@
     </div>
     <div id="msg"></div>
   </div>
+  <div class="card" id="prefcard" hidden>
+    <h2>Model and effort</h2>
+    <div class="prefs">
+      <label>Model <select id="pmodel"></select></label>
+      <label>Effort <select id="peffort"></select></label>
+    </div>
+    <p class="help" id="phelp"></p>
+    <p class="help">Used for every "Send to Claude" and "New" you start. The Talk tab can override them for one message. Bigger models and higher effort use up your plan's limits faster: Sonnet at low effort goes furthest, Opus or Fable at max uses the most.</p>
+    <div id="pmsg" class="help"></div>
+  </div>
 </main>
 <script>
 const $ = s => document.querySelector(s);
@@ -55,8 +71,26 @@ async function api(path, body) {
   if (!r.ok) throw new Error(j.detail || `Error ${r.status}`);
   return j;
 }
+const MODEL_NOTE = { opus: 'Opus: strong at careful geometry and following CAD conventions. A good default.', sonnet: 'Sonnet: faster and lighter on usage; fine for small tweaks.', fable: 'Fable: the most capable model; uses the most usage.' };
+const EFFORT_NOTE = { '': 'Default effort: Claude Code decides.', low: 'Low: quickest, fewest checks.', medium: 'Medium: a balance.', high: 'High: more thinking before editing.', xhigh: 'Extra high: slower, more thorough.', max: 'Max: thinks the longest; best for hard new parts.' };
+const cap = s => s[0].toUpperCase() + s.slice(1);
+function prefHelp() { $('#phelp').textContent = `${MODEL_NOTE[$('#pmodel').value] || ''} ${EFFORT_NOTE[$('#peffort').value] || ''}`; }
+async function savePrefs() {
+  prefHelp();
+  try { await fetch('/api/account/prefs', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ model: $('#pmodel').value, effort: $('#peffort').value }) }).then(r => { if (!r.ok) throw new Error(); }); $('#pmsg').textContent = 'Saved.'; }
+  catch { $('#pmsg').innerHTML = '<span class="err">Couldn\'t save.</span>'; }
+  setTimeout(() => $('#pmsg').textContent = '', 1500);
+}
+function showPrefs(a) {
+  $('#pmodel').innerHTML = a.models.map(m => `<option value="${m}">${cap(m)}</option>`).join('');
+  $('#peffort').innerHTML = '<option value="">Default</option>' + a.efforts.map(e => `<option value="${e}">${e === 'xhigh' ? 'Extra high' : cap(e)}</option>`).join('');
+  $('#pmodel').value = a.prefs.model; $('#peffort').value = a.prefs.effort; prefHelp();
+  $('#prefcard').hidden = a.enabled && !a.email;
+}
+$('#pmodel').onchange = $('#peffort').onchange = savePrefs;
 async function load() {
   const a = await api('/api/account');
+  showPrefs(a);
   if (!a.enabled) { $('#who').textContent = 'Per-user Claude accounts are off on this Studio: Claude runs on the account the claude CLI here is logged in to.'; $('#connect').hidden = $('#connected').hidden = $('#steps').hidden = true; return; }
   $('#who').innerHTML = a.email ? `Signed in to the Studio as <b>${esc(a.email)}</b>` : '<span class="err">Not signed in. Open the Studio through its signed-in address.</span>';
   $('#connected').hidden = !a.connected; $('#connect').hidden = a.connected || !a.email; $('#steps').hidden = true;

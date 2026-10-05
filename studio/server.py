@@ -28,6 +28,15 @@ from studio import accounts  # noqa: E402
 
 app = FastAPI(title="LabCAD Studio")
 app.include_router(accounts.router)
+
+
+@app.middleware("http")
+async def revalidate_static(request, call_next):
+    """Make browsers check the page/JS on every load (cheap: ETag → 304), so Studio updates show without a hard refresh."""
+    resp = await call_next(request)
+    if not request.url.path.startswith("/api/"):
+        resp.headers.setdefault("Cache-Control", "no-cache")
+    return resp
 BUILD_LOCK = asyncio.Lock()   # one build/Claude run at a time — they share params.json
 DRAW_LOCK = asyncio.Lock()    # drafting only reads a version, so it never waits behind an Claude run
 
@@ -712,6 +721,8 @@ class Pin(BaseModel):
 
 class FeedbackReq(BaseModel):
     text: str
+    model: str | None = None    # per-message override of the user's saved model / effort
+    effort: str | None = None
     pins: list[Pin] = []
     version: int | None = None
     measures: list[dict] = []
@@ -809,6 +820,7 @@ async def feedback(name, req: FeedbackReq, request: Request):
     part_dir(name)
     try:
         email, token = accounts.need_token(request)
+        model, effort = accounts.run_settings(request, req.model, req.effort)
     except HTTPException as e:
         return StreamingResponse(iter([json.dumps(dict(type="error", text=e.detail)) + "\n"]), media_type="application/x-ndjson")
     sess_file = PARTS / name / "session.json"
@@ -824,18 +836,18 @@ async def feedback(name, req: FeedbackReq, request: Request):
         shots.append(save_data_url(name, a, f"{stamp}_photo{i}"))
     prompt = compose_prompt(name, req, P, latest, shots)
     log_chat(name, dict(role="user", text=req.text, pins=[p.model_dump() for p in req.pins], shots=shots, scope=req.scope,
-                        version=req.version or latest, user=email, ts=time.strftime("%Y-%m-%dT%H:%M:%S")))
+                        version=req.version or latest, user=email, model=model, effort=effort, ts=time.strftime("%Y-%m-%dT%H:%M:%S")))
 
-    return StreamingResponse(run_claude(name, prompt, session_id, before, latest, token), media_type="application/x-ndjson")
+    return StreamingResponse(run_claude(name, prompt, session_id, before, latest, token, model, effort), media_type="application/x-ndjson")
 
 
-def run_claude(name, prompt, session_id, before, latest, token):
+def run_claude(name, prompt, session_id, before, latest, token, model, effort):
     sess_file = PARTS / name / "session.json"
 
     async def gen():
         async with BUILD_LOCK:
             cmd = [CLAUDE, "--permission-mode", "acceptEdits", "--allowedTools", *ALLOWED_TOOLS,
-                   "--model", "opus", "--output-format", "stream-json", "--verbose"]
+                   "--model", model, *(["--effort", effort] if effort else []), "--output-format", "stream-json", "--verbose"]
             if session_id:
                 cmd += ["--resume", session_id]
             cmd += ["-p", prompt]
@@ -913,6 +925,7 @@ class NewPartReq(BaseModel):
 async def new_part(req: NewPartReq, request: Request):
     """Start a part from a plain-language brief: stub it so it's a valid part, then hand the brief to Claude."""
     email, token = accounts.need_token(request)
+    model, effort = accounts.run_settings(request)
     new = req.name.strip().lower().replace(" ", "_").replace("-", "_")
     if not SAFE.match(new):
         raise HTTPException(400, "Name must be letters, digits and underscores, starting with a letter.")
@@ -947,7 +960,7 @@ async def new_part(req: NewPartReq, request: Request):
         "If the brief is missing something you truly can't guess (a critical dimension, which of two very different things),",
         "ask that one question instead and still build your best guess so there's something to look at.",
     ])
-    return StreamingResponse(run_claude(new, prompt, None, set(), 0, token), media_type="application/x-ndjson")
+    return StreamingResponse(run_claude(new, prompt, None, set(), 0, token, model, effort), media_type="application/x-ndjson")
 
 
 @app.post("/api/parts/{name}/reset-session")

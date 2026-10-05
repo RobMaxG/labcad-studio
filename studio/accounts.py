@@ -21,6 +21,9 @@ ANSI = re.compile(r"\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b\[[0-9;?<>=]*[ -/]*[@-
 URL = re.compile(r"https://claude\.(?:com|ai)/\S*oauth/authorize\?[^\s\x07\x1b]+")
 TOKEN = re.compile(r"sk-ant-oat[0-9]{2}-[A-Za-z0-9_\-]{20,}")
 PENDING_TTL = 900
+MODELS = ["opus", "sonnet", "fable"]                       # `claude --model` aliases (always the latest of each)
+EFFORTS = ["low", "medium", "high", "xhigh", "max"]       # `claude --effort`; unset = Claude Code's default
+DEFAULTS = dict(model="opus", effort="")
 CLAUDE = os.environ.get("CLAUDE_PATH") or shutil.which("claude") or str(Path.home() / ".local/bin/claude")
 
 router = APIRouter()
@@ -36,11 +39,47 @@ def _file(email):
     return DIR / (re.sub(r"[^a-z0-9@._+-]", "_", email) + ".json")
 
 
+def _load(key):
+    f = _file(key)
+    return json.loads(f.read_text()) if f.exists() else {}
+
+
+def _save(key, rec):
+    DIR.mkdir(parents=True, exist_ok=True)
+    os.chmod(DIR, 0o700)
+    f = _file(key)
+    f.write_text(json.dumps(rec))
+    os.chmod(f, 0o600)
+
+
 def token_for(email):
-    if not email:
-        return None
-    f = _file(email)
-    return json.loads(f.read_text()).get("token") if f.exists() else None
+    return _load(email).get("token") if email else None
+
+
+def _prefs_key(request):
+    return who(request) if ENABLED else "_shared"   # accounts off: one shared set of preferences
+
+
+def prefs(request):
+    key = _prefs_key(request)
+    rec = _load(key) if key else {}
+    return {k: rec.get(k, v) for k, v in DEFAULTS.items()}
+
+
+def clean(model, effort):
+    """Validate a model/effort pair; '' or None means "not set"."""
+    if model and model not in MODELS:
+        raise HTTPException(400, f"Unknown model {model!r}.")
+    if effort and effort not in EFFORTS:
+        raise HTTPException(400, f"Unknown effort {effort!r}.")
+    return model or None, effort or None
+
+
+def run_settings(request, model=None, effort=None):
+    """(model, effort) for a Claude run: a per-message override wins, then the user's saved choice."""
+    model, effort = clean(model, effort)
+    p = prefs(request)
+    return model or p["model"] or DEFAULTS["model"], effort or p["effort"] or None
 
 
 def need_token(request: Request):
@@ -90,10 +129,26 @@ def _read_until(fd, pattern, timeout, buf=""):
 @router.get("/api/account")
 def account(request: Request):
     email = who(request)
-    f = _file(email) if email else None
-    info = json.loads(f.read_text()) if f and f.exists() else {}
+    info = _load(email) if email else {}
     return dict(enabled=ENABLED, email=email, connected=bool(info.get("token")), connected_at=info.get("connected_at"),
-                pending=email in _pending)
+                pending=email in _pending, prefs=prefs(request), models=MODELS, efforts=EFFORTS)
+
+
+class PrefsReq(BaseModel):
+    model: str = ""
+    effort: str = ""
+
+
+@router.put("/api/account/prefs")
+def set_prefs(request: Request, req: PrefsReq):
+    key = _prefs_key(request)
+    if not key:
+        raise HTTPException(403, "Open the Studio through its signed-in address to save settings.")
+    model, effort = clean(req.model, req.effort)
+    rec = _load(key)
+    rec.update(model=model or DEFAULTS["model"], effort=effort or "")
+    _save(key, rec)
+    return prefs(request)
 
 
 @router.post("/api/account/login/start")
@@ -144,11 +199,9 @@ async def login_finish(request: Request, req: FinishReq):
     if not m:
         tail = ANSI.sub("", buf).strip().splitlines()[-3:]
         raise HTTPException(400, "Claude didn't accept that code. " + " ".join(t.strip() for t in tail)[-300:])
-    DIR.mkdir(parents=True, exist_ok=True)
-    os.chmod(DIR, 0o700)
-    f = _file(email)
-    f.write_text(json.dumps(dict(email=email, token=m.group(0), connected_at=time.strftime("%Y-%m-%dT%H:%M:%S"))))
-    os.chmod(f, 0o600)
+    rec = _load(email)
+    rec.update(email=email, token=m.group(0), connected_at=time.strftime("%Y-%m-%dT%H:%M:%S"))
+    _save(email, rec)
     return dict(ok=True, email=email, connected=True)
 
 
@@ -157,7 +210,8 @@ def disconnect(request: Request):
     email = who(request)
     if email:
         _kill(email)
-        f = _file(email)
-        if f.exists():
-            f.unlink()
+        rec = _load(email)
+        if rec.pop("token", None) is not None:   # keep their model/effort choice
+            rec.pop("connected_at", None)
+            _save(email, rec)
     return dict(ok=True)

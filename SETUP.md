@@ -148,4 +148,5 @@ bar, signs in to Claude once (the Studio runs `claude setup-token` for them and 
 under `~/.labcad-accounts`), and their "Send to Claude" / "New" runs go on their own plan. Nobody without a connected account
 can start a Claude run, and there's no fallback to the machine's login. Other proxies: set `LABCAD_USER_HEADER` to the header
 they send. Only enable this when that proxy is the *only* way to reach the Studio, since the header is trusted as-is.
-Left off (the default), everything works as above: Claude runs on whatever account the `claude` CLI here is logged in to.
+Each person also picks their **model** (Opus, Sonnet, Fable) and **effort** (default, low … max) on the Account page, and the Talk tab can
+override both for a single message. Left off (the default), everything works as above, with one shared model/effort choice: Claude runs on whatever account the `claude` CLI here is logged in to.
