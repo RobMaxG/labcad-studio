@@ -619,7 +619,7 @@ $('#send').onclick = async () => {
   const text = $('#text').value.trim(); if (!text && !state.pins.length) { hint('Say something, or drop a pin', 2000); return; }
   if (state.preview) await discardPreview();
   setBusy(true); $('#live').textContent = 'Sending…';
-  const body = { text, model: $('#ov-model').value || null, effort: $('#ov-effort').value || null, version: state.version?.version, scope: $('#scope').hidden ? null : ($('#scope-sel').value || null),
+  const body = { text, model: $('#ov-model').value || null, effort: $('#ov-effort').value || 'default', version: state.version?.version, scope: $('#scope').hidden ? null : ($('#scope-sel').value || null),
     pins: state.pins.map(({ n, x, y, z, note, component }) => ({ n, x, y, z, note, component })), measures: state.measures.map(({ label, mm }) => ({ label, mm })), shot: snapshot(), attachments: state.attachments };
   state.attachments = []; renderAttachments(); resetOverride();
   $('#text').value = ''; localStorage.removeItem(`labcad.draft.${state.part}`);
@@ -766,17 +766,21 @@ $('#fork-go').onclick = async () => {
 document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { document.querySelectorAll('#tabs button').forEach(x => x.setAttribute('aria-selected', String(x === b))); document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === `pane-${b.dataset.pane}`)); if (b.dataset.pane === 'family') renderFamily(); });
 loadParts().then(() => { if (new URLSearchParams(location.search).get('new')) $('#newbtn').click(); });
 
-// One-message model / effort override in the Talk tab; blank = the user's saved choice (Account page)
+// Model / effort for the next message: preselected to the user's saved choice (Account page); change for one message,
+// it snaps back after sending. Highlighted while it differs from the saved choice.
 const capw = s => s === 'xhigh' ? 'Extra high' : s[0].toUpperCase() + s.slice(1);
-function resetOverride() { for (const id of ['#ov-model', '#ov-effort']) { $(id).value = ''; $(id).classList.remove('set'); } }
+const ov = { model: 'opus', effort: '' };
+function markOverride() { $('#ov-model').classList.toggle('set', $('#ov-model').value !== ov.model); $('#ov-effort').classList.toggle('set', $('#ov-effort').value !== ov.effort); }
+function resetOverride() { $('#ov-model').value = ov.model; $('#ov-effort').value = ov.effort; markOverride(); }
 function loadOverride() {
-  fetch('/api/account').then(r => r.json()).then(a => {
+  return fetch('/api/account').then(r => r.json()).then(a => {
     if (!a.enabled) $('#acctbtn').hidden = true;
-    const p = a.prefs || {};
-    $('#ov-model').innerHTML = `<option value="">${capw(p.model || 'opus')} (yours)</option>` + a.models.filter(m => m !== p.model).map(m => `<option value="${m}">${capw(m)}</option>`).join('');
-    $('#ov-effort').innerHTML = `<option value="">${p.effort ? capw(p.effort) : 'Default'} effort (yours)</option>` + a.efforts.filter(e => e !== p.effort).map(e => `<option value="${e}">${capw(e)} effort</option>`).join('');
+    Object.assign(ov, { model: a.prefs?.model || 'opus', effort: a.prefs?.effort || '' });
+    $('#ov-model').innerHTML = a.models.map(m => `<option value="${m}">${capw(m)}${m === ov.model ? ' (yours)' : ''}</option>`).join('');
+    $('#ov-effort').innerHTML = ['', ...a.efforts].map(e => `<option value="${e}">${e ? capw(e) : 'Default'} effort${e === ov.effort ? ' (yours)' : ''}</option>`).join('');
     resetOverride();
   }).catch(() => {});
 }
-for (const id of ['#ov-model', '#ov-effort']) $(id).onchange = () => $(id).classList.toggle('set', !!$(id).value);
+for (const id of ['#ov-model', '#ov-effort']) $(id).onchange = markOverride;
+window.addEventListener('focus', () => { if (!$('#ov-model').classList.contains('set') && !$('#ov-effort').classList.contains('set')) loadOverride(); });   // picks up changes made on the Account page
 loadOverride();

@@ -76,10 +76,12 @@ def clean(model, effort):
 
 
 def run_settings(request, model=None, effort=None):
-    """(model, effort) for a Claude run: a per-message override wins, then the user's saved choice."""
-    model, effort = clean(model, effort)
+    """(model, effort) for a Claude run: a per-message override wins, then the user's saved choice.
+    effort="default" is an explicit "don't pass --effort" (so a message can drop back from a saved level)."""
+    explicit_default = effort == "default"
+    model, effort = clean(model, None if explicit_default else effort)
     p = prefs(request)
-    return model or p["model"] or DEFAULTS["model"], effort or p["effort"] or None
+    return model or p["model"] or DEFAULTS["model"], None if explicit_default else (effort or p["effort"] or None)
 
 
 def need_token(request: Request):
