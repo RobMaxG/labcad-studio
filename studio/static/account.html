@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LabCAD Account</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27%3E%3Crect x=%273%27 y=%274%27 width=%2718%27 height=%2712%27 rx=%271%27 fill=%27%236f8db0%27/%3E%3Crect x=%277%27 y=%2714%27 width=%2710%27 height=%276%27 fill=%27%23ff9f43%27/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+<style>
+  :root{--bed:#1d2025;--bed-2:#171a1e;--panel:#22262c;--line:#30353d;--line-2:#3c424b;--ink:#e8e3da;--ink-2:#a9aeb6;--ink-3:#6f757f;--marker:#ff9f43;--marker-ink:#2a1a06;--ok:#8fd19e;--bad:#f07a7a}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bed);color:var(--ink);font:14px/1.45 "Instrument Sans",system-ui,sans-serif}
+  button,input{font:inherit;color:inherit}
+  a{color:inherit}
+  header{display:flex;align-items:baseline;gap:18px;padding:22px 32px 10px;border-bottom:1px solid var(--line)}
+  header h1{margin:0;font-size:20px;font-weight:600}
+  header .grow{flex:1}
+  .btn{background:var(--bed-2);border:1px solid var(--line-2);border-radius:8px;padding:8px 14px;font-weight:600;text-decoration:none;display:inline-block;cursor:pointer}
+  .btn.primary{background:var(--marker);color:var(--marker-ink);border-color:var(--marker)}
+  .btn:disabled{opacity:.5;cursor:default}
+  main{padding:18px 32px 60px;max-width:720px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+  .muted{color:var(--ink-2)} .ok{color:var(--ok);font-weight:600} .err{color:var(--bad)}
+  ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px}
+  input{background:var(--bed-2);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><h1>Your Claude account</h1><span class="grow"></span><a class="btn" href="/">Back to Studio</a></header>
+<main>
+  <div class="card">
+    <div id="who" class="muted">Checking…</div>
+    <p class="muted" style="margin:0">"Send to Claude" and "New" run on the Claude account of whoever is signed in, so each person uses their own Claude plan. You connect once; it stays connected for a year or until you disconnect.</p>
+    <div id="connected" class="row" hidden><span class="ok">Connected</span><span id="since" class="muted"></span><span style="flex:1"></span><button class="btn" id="disconnect">Disconnect</button></div>
+    <div id="connect" hidden><button class="btn primary" id="start">Connect Claude</button></div>
+    <div id="steps" hidden>
+      <ol>
+        <li><a id="link" class="btn primary" target="_blank" rel="noopener">Sign in to Claude</a> <span class="muted">(opens a new tab; use your own Claude account and press Authorize)</span></li>
+        <li>Claude then shows a code. Copy it and paste it here:
+          <div class="row" style="margin-top:6px"><input id="code" autocomplete="off" spellcheck="false" placeholder="Paste code"><button class="btn primary" id="finish">Finish</button></div></li>
+      </ol>
+    </div>
+    <div id="msg"></div>
+  </div>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+async function api(path, body) {
+  const r = await fetch(path, { method: body === undefined ? 'GET' : 'POST', headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.detail || `Error ${r.status}`);
+  return j;
+}
+async function load() {
+  const a = await api('/api/account');
+  $('#who').innerHTML = a.email ? `Signed in to the Studio as <b>${esc(a.email)}</b>` : '<span class="err">Not signed in. Open the Studio at cad.jessegingras.com.</span>';
+  $('#connected').hidden = !a.connected; $('#connect').hidden = a.connected || !a.email; $('#steps').hidden = true;
+  $('#since').textContent = a.connected_at ? `since ${a.connected_at.slice(0, 10)}` : '';
+}
+$('#start').onclick = async () => {
+  $('#start').disabled = true; $('#start').textContent = 'Getting a sign-in link…'; $('#msg').textContent = '';
+  try { const { url } = await api('/api/account/login/start', {}); $('#link').href = url; $('#connect').hidden = true; $('#steps').hidden = false; }
+  catch (e) { $('#msg').innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+  $('#start').disabled = false; $('#start').textContent = 'Connect Claude';
+};
+$('#finish').onclick = async () => {
+  const code = $('#code').value.trim(); if (!code) { $('#code').focus(); return; }
+  $('#finish').disabled = true; $('#finish').textContent = 'Checking…'; $('#msg').textContent = '';
+  try { await api('/api/account/login/finish', { code }); $('#code').value = ''; await load(); $('#msg').innerHTML = '<span class="ok">Done. Claude will now run on your account.</span>'; }
+  catch (e) { $('#msg').innerHTML = `<span class="err">${esc(e.message)}</span>`; $('#steps').hidden = true; $('#connect').hidden = false; }
+  $('#finish').disabled = false; $('#finish').textContent = 'Finish';
+};
+$('#code').onkeydown = e => { if (e.key === 'Enter') $('#finish').click(); };
+$('#disconnect').onclick = async () => { if (!confirm('Disconnect your Claude account from LabCAD?')) return; await api('/api/account/disconnect', {}); await load(); };
+load();
+</script>
+</body>
+</html>

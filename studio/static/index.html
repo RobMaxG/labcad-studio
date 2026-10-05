@@ -160,8 +160,8 @@
   #askdlg input{background:var(--bed-2);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%}
   #askdlg .row{display:flex;gap:8px;justify-content:flex-end}
   .ver .act button.ren{margin-left:auto}
-  #libbtn,#refbtn,#prbtn{color:var(--ink-2);text-decoration:none;font-weight:600;padding:6px 10px;border:1px solid transparent;border-radius:8px}
-  #libbtn:hover,#refbtn:hover,#prbtn:hover{color:var(--ink);border-color:var(--line-2)}
+  #libbtn,#refbtn,#prbtn,#acctbtn{color:var(--ink-2);text-decoration:none;font-weight:600;padding:6px 10px;border:1px solid transparent;border-radius:8px}
+  #libbtn:hover,#refbtn:hover,#prbtn:hover,#acctbtn:hover{color:var(--ink);border-color:var(--line-2)}
   #prchip{position:absolute;top:56px;left:16px;display:flex;align-items:center;gap:8px;background:rgba(23,26,30,.82);border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 10px;font-size:12.5px;color:var(--ink-2)}
   #prchip select{background:transparent;border:0;color:var(--ink);font-weight:600;padding:2px 4px}
   #prchip select option{background:var(--panel)}
@@ -294,7 +294,7 @@
 
   <main id="stage">
     <div id="labels"></div>
-    <div id="partbar"><select id="parts" aria-label="Part"></select><span id="lineage"></span><button id="forkbtn" title="Start a variant from the version you're looking at">Fork</button><button id="newbtn" title="Start a new part from a description">New</button><button id="renbtn" title="Rename this part">Rename</button><a id="libbtn" href="/library.html" title="All parts, families and the trash">Library</a><a id="refbtn" href="/reference.html" title="Material &amp; solvent compatibility reference">Materials</a><a id="prbtn" href="/printers.html" title="Printers, tolerances and send-off services">Printers</a></div><div id="prchip"><select id="prsel" aria-label="Target printer"></select><span id="prfit"></span></div>
+    <div id="partbar"><select id="parts" aria-label="Part"></select><span id="lineage"></span><button id="forkbtn" title="Start a variant from the version you're looking at">Fork</button><button id="newbtn" title="Start a new part from a description">New</button><button id="renbtn" title="Rename this part">Rename</button><a id="libbtn" href="/library.html" title="All parts, families and the trash">Library</a><a id="refbtn" href="/reference.html" title="Material &amp; solvent compatibility reference">Materials</a><a id="prbtn" href="/printers.html" title="Printers, tolerances and send-off services">Printers</a><a id="acctbtn" href="/account.html" title="Connect your own Claude account">Account</a></div><div id="prchip"><select id="prsel" aria-label="Target printer"></select><span id="prfit"></span></div>
     <div id="askdlg" role="dialog"><h3 id="ask-title"></h3><input type="text" id="ask-in" spellcheck="false"><div class="row"><button class="btn" id="ask-cancel">Cancel</button><button class="btn primary" id="ask-ok">Save</button></div></div>
     <div id="newdlg" role="dialog" aria-label="New part">
       <h3>New part</h3>

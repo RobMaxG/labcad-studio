@@ -7,7 +7,7 @@ Knob previews go through a warm worker (preview_worker.py) and never create vers
 """
 import asyncio, base64, io, json, os, re, shutil, signal, sys, time, uuid, zipfile
 from pathlib import Path
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -24,8 +24,10 @@ sys.path.insert(0, str(ROOT))
 from build import effective_params  # noqa: E402
 import printers as pr  # noqa: E402
 import knobs as kn  # noqa: E402
+from studio import accounts  # noqa: E402
 
 app = FastAPI(title="LabCAD Studio")
+app.include_router(accounts.router)
 BUILD_LOCK = asyncio.Lock()   # one build/Claude run at a time — they share params.json
 DRAW_LOCK = asyncio.Lock()    # drafting only reads a version, so it never waits behind an Claude run
 
@@ -803,8 +805,12 @@ def compose_prompt(name, req: FeedbackReq, P, latest, shots):
 
 
 @app.post("/api/parts/{name}/feedback")
-async def feedback(name, req: FeedbackReq):
+async def feedback(name, req: FeedbackReq, request: Request):
     part_dir(name)
+    try:
+        email, token = accounts.need_token(request)
+    except HTTPException as e:
+        return StreamingResponse(iter([json.dumps(dict(type="error", text=e.detail)) + "\n"]), media_type="application/x-ndjson")
     sess_file = PARTS / name / "session.json"
     session_id = json.loads(sess_file.read_text()).get("session_id") if sess_file.exists() else None
     _, P = effective_params(name)
@@ -818,12 +824,12 @@ async def feedback(name, req: FeedbackReq):
         shots.append(save_data_url(name, a, f"{stamp}_photo{i}"))
     prompt = compose_prompt(name, req, P, latest, shots)
     log_chat(name, dict(role="user", text=req.text, pins=[p.model_dump() for p in req.pins], shots=shots, scope=req.scope,
-                        version=req.version or latest, ts=time.strftime("%Y-%m-%dT%H:%M:%S")))
+                        version=req.version or latest, user=email, ts=time.strftime("%Y-%m-%dT%H:%M:%S")))
 
-    return StreamingResponse(run_claude(name, prompt, session_id, before, latest), media_type="application/x-ndjson")
+    return StreamingResponse(run_claude(name, prompt, session_id, before, latest, token), media_type="application/x-ndjson")
 
 
-def run_claude(name, prompt, session_id, before, latest):
+def run_claude(name, prompt, session_id, before, latest, token):
     sess_file = PARTS / name / "session.json"
 
     async def gen():
@@ -835,7 +841,8 @@ def run_claude(name, prompt, session_id, before, latest):
             cmd += ["-p", prompt]
             proc = await asyncio.create_subprocess_exec(
                 *cmd, cwd=ROOT, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-                limit=8 * 1024 * 1024, start_new_session=True)
+                limit=8 * 1024 * 1024, start_new_session=True,
+                env={**os.environ, "CLAUDE_CODE_OAUTH_TOKEN": token})   # the asking user's own Claude account
             yield json.dumps(dict(type="status", text="Claude is looking…")) + "\n"
             final, new_sid, last = None, session_id, time.time()
             while True:
@@ -903,8 +910,9 @@ class NewPartReq(BaseModel):
 
 
 @app.post("/api/parts/new")
-async def new_part(req: NewPartReq):
+async def new_part(req: NewPartReq, request: Request):
     """Start a part from a plain-language brief: stub it so it's a valid part, then hand the brief to Claude."""
+    email, token = accounts.need_token(request)
     new = req.name.strip().lower().replace(" ", "_").replace("-", "_")
     if not SAFE.match(new):
         raise HTTPException(400, "Name must be letters, digits and underscores, starting with a letter.")
@@ -919,7 +927,7 @@ async def new_part(req: NewPartReq):
     (d / "model.py").write_text(STUB_MODEL.format(title=new.replace("_", " "), brief=req.brief.strip().replace(chr(34) * 3, chr(39) * 3)))
     stamp = time.strftime("%Y%m%d-%H%M%S")
     shots = [save_data_url(new, a, f"{stamp}_photo{i}") for i, a in enumerate(req.attachments[:6], 1)]
-    log_chat(new, dict(role="user", text=req.brief, pins=[], shots=shots, version=None, ts=time.strftime("%Y-%m-%dT%H:%M:%S")))
+    log_chat(new, dict(role="user", text=req.brief, pins=[], shots=shots, version=None, user=email, ts=time.strftime("%Y-%m-%dT%H:%M:%S")))
     prompt = "\n".join([
         f'[LabCAD Studio — NEW part "{new}". The user\'s brief:]', "", req.brief.strip(), "",
         *(["Photos the user attached (Read each one first):"] + [f"  parts/{new}/shots/{fn}" for fn in shots] + [""] if shots else []),
@@ -939,7 +947,7 @@ async def new_part(req: NewPartReq):
         "If the brief is missing something you truly can't guess (a critical dimension, which of two very different things),",
         "ask that one question instead and still build your best guess so there's something to look at.",
     ])
-    return StreamingResponse(run_claude(new, prompt, None, set(), 0), media_type="application/x-ndjson")
+    return StreamingResponse(run_claude(new, prompt, None, set(), 0, token), media_type="application/x-ndjson")
 
 
 @app.post("/api/parts/{name}/reset-session")
