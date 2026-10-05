@@ -57,7 +57,8 @@ async function api(path, body) {
 }
 async function load() {
   const a = await api('/api/account');
-  $('#who').innerHTML = a.email ? `Signed in to the Studio as <b>${esc(a.email)}</b>` : '<span class="err">Not signed in. Open the Studio at cad.jessegingras.com.</span>';
+  if (!a.enabled) { $('#who').textContent = 'Per-user Claude accounts are off on this Studio: Claude runs on the account the claude CLI here is logged in to.'; $('#connect').hidden = $('#connected').hidden = $('#steps').hidden = true; return; }
+  $('#who').innerHTML = a.email ? `Signed in to the Studio as <b>${esc(a.email)}</b>` : '<span class="err">Not signed in. Open the Studio through its signed-in address.</span>';
   $('#connected').hidden = !a.connected; $('#connect').hidden = a.connected || !a.email; $('#steps').hidden = true;
   $('#since').textContent = a.connected_at ? `since ${a.connected_at.slice(0, 10)}` : '';
 }

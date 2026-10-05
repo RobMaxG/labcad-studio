@@ -842,7 +842,7 @@ def run_claude(name, prompt, session_id, before, latest, token):
             proc = await asyncio.create_subprocess_exec(
                 *cmd, cwd=ROOT, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
                 limit=8 * 1024 * 1024, start_new_session=True,
-                env={**os.environ, "CLAUDE_CODE_OAUTH_TOKEN": token})   # the asking user's own Claude account
+                env={**os.environ, **({"CLAUDE_CODE_OAUTH_TOKEN": token} if token else {})})   # the asker's own account (studio/accounts.py)
             yield json.dumps(dict(type="status", text="Claude is looking…")) + "\n"
             final, new_sid, last = None, session_id, time.time()
             while True:

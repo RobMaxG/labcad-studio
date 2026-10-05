@@ -1,6 +1,9 @@
 """Per-user Claude accounts, so each person's "Send to Claude" runs on their own subscription.
 
-Who's asking comes from Cloudflare Access (Cf-Access-Authenticated-User-Email). Each user connects once:
+Off unless LABCAD_ACCOUNTS=1 (then every run needs the asker's own account); with it off, Claude runs on whatever
+account the `claude` CLI on this machine is logged in to, exactly as before.
+
+Who's asking comes from an authenticating proxy in front of the Studio, e.g. Cloudflare Access (Cf-Access-Authenticated-User-Email). Each user connects once:
 the Studio runs `claude setup-token` in a pseudo-terminal, hands the sign-in URL to the browser, takes the code
 the user pastes back, and keeps the resulting long-lived token (one file per user, mode 600). Claude runs then
 get it as CLAUDE_CODE_OAUTH_TOKEN. Without a connected account there is no fallback to anyone else's.
@@ -11,7 +14,8 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 DIR = Path(os.environ.get("LABCAD_ACCOUNTS_DIR") or Path.home() / ".labcad-accounts")
-HEADER = "cf-access-authenticated-user-email"
+ENABLED = os.environ.get("LABCAD_ACCOUNTS", "").strip().lower() in ("1", "true", "yes", "on")
+HEADER = os.environ.get("LABCAD_USER_HEADER", "cf-access-authenticated-user-email").lower()   # set by the proxy, never by the browser
 LAN_USER = os.environ.get("LABCAD_LAN_USER", "").strip().lower()   # optional: who direct (non-Cloudflare) visits act as
 ANSI = re.compile(r"\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b\[[0-9;?<>=]*[ -/]*[@-~]|\x1b[=>()][0-9A-Za-z]?")
 URL = re.compile(r"https://claude\.(?:com|ai)/\S*oauth/authorize\?[^\s\x07\x1b]+")
@@ -40,10 +44,12 @@ def token_for(email):
 
 
 def need_token(request: Request):
-    """(email, token) for a Claude run, or an HTTPException telling the user what to do."""
+    """(email, token) for a Claude run, or an HTTPException telling the user what to do. (None, None) when accounts are off."""
+    if not ENABLED:
+        return None, None
     email = who(request)
     if not email:
-        raise HTTPException(403, "Open the Studio through cad.jessegingras.com (signed in) to use Claude.")
+        raise HTTPException(403, "Open the Studio through its signed-in address to use Claude.")
     tok = token_for(email)
     if not tok:
         raise HTTPException(403, "Connect your Claude account first: Account (top bar) → Connect Claude.")
@@ -86,15 +92,17 @@ def account(request: Request):
     email = who(request)
     f = _file(email) if email else None
     info = json.loads(f.read_text()) if f and f.exists() else {}
-    return dict(email=email, connected=bool(info.get("token")), connected_at=info.get("connected_at"),
+    return dict(enabled=ENABLED, email=email, connected=bool(info.get("token")), connected_at=info.get("connected_at"),
                 pending=email in _pending)
 
 
 @router.post("/api/account/login/start")
 async def login_start(request: Request):
     email = who(request)
+    if not ENABLED:
+        raise HTTPException(404, "Per-user Claude accounts are off (LABCAD_ACCOUNTS).")
     if not email:
-        raise HTTPException(403, "Open the Studio through cad.jessegingras.com (signed in) to connect Claude.")
+        raise HTTPException(403, "Open the Studio through its signed-in address to connect Claude.")
     for e in [e for e, p in _pending.items() if time.time() - p["t"] > PENDING_TTL]:
         _kill(e)
     _kill(email)

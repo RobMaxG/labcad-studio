@@ -139,3 +139,13 @@ From then on, `CLAUDE.md` is your working contract in this repo. Read it before 
 - Generated models (STL, STEP, 3MF) are gitignored: they're large and regenerable from `versions/vNNN.py`.
   The small version records (`vNNN.json`, `vNNN.py`, renders) can be committed; whether to is the user's call.
 - Knob previews build into `parts/*/.preview/` and log to `studio/preview_worker.log`; both are scratch and ignored.
+
+## Optional: several people, each on their own Claude account
+
+If the Studio sits behind a login proxy that tells it who's asking (Cloudflare Access does this with the
+`Cf-Access-Authenticated-User-Email` header), set `LABCAD_ACCOUNTS=1`. Each person then opens **Account** in the top
+bar, signs in to Claude once (the Studio runs `claude setup-token` for them and keeps the token, one file per user, mode 600,
+under `~/.labcad-accounts`), and their "Send to Claude" / "New" runs go on their own plan. Nobody without a connected account
+can start a Claude run, and there's no fallback to the machine's login. Other proxies: set `LABCAD_USER_HEADER` to the header
+they send. Only enable this when that proxy is the *only* way to reach the Studio, since the header is trusted as-is.
+Left off (the default), everything works as above: Claude runs on whatever account the `claude` CLI here is logged in to.

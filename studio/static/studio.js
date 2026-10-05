@@ -765,3 +765,5 @@ $('#fork-go').onclick = async () => {
 
 document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { document.querySelectorAll('#tabs button').forEach(x => x.setAttribute('aria-selected', String(x === b))); document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === `pane-${b.dataset.pane}`)); if (b.dataset.pane === 'family') renderFamily(); });
 loadParts().then(() => { if (new URLSearchParams(location.search).get('new')) $('#newbtn').click(); });
+
+fetch('/api/account').then(r => r.json()).then(a => { if (!a.enabled) $('#acctbtn').hidden = true; }).catch(() => {});
