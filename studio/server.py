@@ -7,7 +7,7 @@ Knob previews go through a warm worker (preview_worker.py) and never create vers
 """
 import asyncio, base64, io, json, os, re, shutil, signal, sys, time, uuid, zipfile
 from pathlib import Path
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -24,8 +24,19 @@ sys.path.insert(0, str(ROOT))
 from build import effective_params  # noqa: E402
 import printers as pr  # noqa: E402
 import knobs as kn  # noqa: E402
+from studio import accounts  # noqa: E402
 
 app = FastAPI(title="LabCAD Studio")
+app.include_router(accounts.router)
+
+
+@app.middleware("http")
+async def revalidate_static(request, call_next):
+    """Make browsers check the page/JS on every load (cheap: ETag → 304), so Studio updates show without a hard refresh."""
+    resp = await call_next(request)
+    if not request.url.path.startswith("/api/"):
+        resp.headers.setdefault("Cache-Control", "no-cache")
+    return resp
 BUILD_LOCK = asyncio.Lock()   # one build/Claude run at a time — they share params.json
 DRAW_LOCK = asyncio.Lock()    # drafting only reads a version, so it never waits behind an Claude run
 
@@ -710,6 +721,8 @@ class Pin(BaseModel):
 
 class FeedbackReq(BaseModel):
     text: str
+    model: str | None = None    # per-message override of the user's saved model / effort
+    effort: str | None = None
     pins: list[Pin] = []
     version: int | None = None
     measures: list[dict] = []
@@ -803,8 +816,13 @@ def compose_prompt(name, req: FeedbackReq, P, latest, shots):
 
 
 @app.post("/api/parts/{name}/feedback")
-async def feedback(name, req: FeedbackReq):
+async def feedback(name, req: FeedbackReq, request: Request):
     part_dir(name)
+    try:
+        email, token = accounts.need_token(request)
+        model, effort = accounts.run_settings(request, req.model, req.effort)
+    except HTTPException as e:
+        return StreamingResponse(iter([json.dumps(dict(type="error", text=e.detail)) + "\n"]), media_type="application/x-ndjson")
     sess_file = PARTS / name / "session.json"
     session_id = json.loads(sess_file.read_text()).get("session_id") if sess_file.exists() else None
     _, P = effective_params(name)
@@ -818,24 +836,25 @@ async def feedback(name, req: FeedbackReq):
         shots.append(save_data_url(name, a, f"{stamp}_photo{i}"))
     prompt = compose_prompt(name, req, P, latest, shots)
     log_chat(name, dict(role="user", text=req.text, pins=[p.model_dump() for p in req.pins], shots=shots, scope=req.scope,
-                        version=req.version or latest, ts=time.strftime("%Y-%m-%dT%H:%M:%S")))
+                        version=req.version or latest, user=email, model=model, effort=effort, ts=time.strftime("%Y-%m-%dT%H:%M:%S")))
 
-    return StreamingResponse(run_claude(name, prompt, session_id, before, latest), media_type="application/x-ndjson")
+    return StreamingResponse(run_claude(name, prompt, session_id, before, latest, token, model, effort), media_type="application/x-ndjson")
 
 
-def run_claude(name, prompt, session_id, before, latest):
+def run_claude(name, prompt, session_id, before, latest, token, model, effort):
     sess_file = PARTS / name / "session.json"
 
     async def gen():
         async with BUILD_LOCK:
             cmd = [CLAUDE, "--permission-mode", "acceptEdits", "--allowedTools", *ALLOWED_TOOLS,
-                   "--model", "opus", "--output-format", "stream-json", "--verbose"]
+                   "--model", model, *(["--effort", effort] if effort else []), "--output-format", "stream-json", "--verbose"]
             if session_id:
                 cmd += ["--resume", session_id]
             cmd += ["-p", prompt]
             proc = await asyncio.create_subprocess_exec(
                 *cmd, cwd=ROOT, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-                limit=8 * 1024 * 1024, start_new_session=True)
+                limit=8 * 1024 * 1024, start_new_session=True,
+                env={**os.environ, **({"CLAUDE_CODE_OAUTH_TOKEN": token} if token else {})})   # the asker's own account (studio/accounts.py)
             yield json.dumps(dict(type="status", text="Claude is looking…")) + "\n"
             final, new_sid, last = None, session_id, time.time()
             while True:
@@ -903,8 +922,10 @@ class NewPartReq(BaseModel):
 
 
 @app.post("/api/parts/new")
-async def new_part(req: NewPartReq):
+async def new_part(req: NewPartReq, request: Request):
     """Start a part from a plain-language brief: stub it so it's a valid part, then hand the brief to Claude."""
+    email, token = accounts.need_token(request)
+    model, effort = accounts.run_settings(request)
     new = req.name.strip().lower().replace(" ", "_").replace("-", "_")
     if not SAFE.match(new):
         raise HTTPException(400, "Name must be letters, digits and underscores, starting with a letter.")
@@ -919,7 +940,7 @@ async def new_part(req: NewPartReq):
     (d / "model.py").write_text(STUB_MODEL.format(title=new.replace("_", " "), brief=req.brief.strip().replace(chr(34) * 3, chr(39) * 3)))
     stamp = time.strftime("%Y%m%d-%H%M%S")
     shots = [save_data_url(new, a, f"{stamp}_photo{i}") for i, a in enumerate(req.attachments[:6], 1)]
-    log_chat(new, dict(role="user", text=req.brief, pins=[], shots=shots, version=None, ts=time.strftime("%Y-%m-%dT%H:%M:%S")))
+    log_chat(new, dict(role="user", text=req.brief, pins=[], shots=shots, version=None, user=email, ts=time.strftime("%Y-%m-%dT%H:%M:%S")))
     prompt = "\n".join([
         f'[LabCAD Studio — NEW part "{new}". The user\'s brief:]', "", req.brief.strip(), "",
         *(["Photos the user attached (Read each one first):"] + [f"  parts/{new}/shots/{fn}" for fn in shots] + [""] if shots else []),
@@ -939,7 +960,7 @@ async def new_part(req: NewPartReq):
         "If the brief is missing something you truly can't guess (a critical dimension, which of two very different things),",
         "ask that one question instead and still build your best guess so there's something to look at.",
     ])
-    return StreamingResponse(run_claude(new, prompt, None, set(), 0), media_type="application/x-ndjson")
+    return StreamingResponse(run_claude(new, prompt, None, set(), 0, token, model, effort), media_type="application/x-ndjson")
 
 
 @app.post("/api/parts/{name}/reset-session")

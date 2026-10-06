@@ -35,7 +35,7 @@
   .pin-label{background:var(--marker);color:var(--marker-ink);font-weight:700;font-size:12px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;transform:translate(10px,-10px);box-shadow:0 1px 4px rgba(0,0,0,.5)}
   .dim-label{background:var(--panel);border:1px solid var(--marker);color:var(--ink);font-size:12px;padding:1px 6px;border-radius:4px;white-space:nowrap}
   #partbar{position:absolute;top:14px;left:16px;display:flex;align-items:center;gap:10px}
-  #partbar select{background:var(--panel);border:1px solid var(--line-2);border-radius:8px;padding:6px 10px;font-weight:600}
+  #partbar select{max-width:220px;text-overflow:ellipsis;background:var(--panel);border:1px solid var(--line-2);border-radius:8px;padding:6px 10px;font-weight:600}
   #hint{position:absolute;top:104px;left:50%;transform:translateX(-50%);color:var(--ink-2);font-size:13px;background:rgba(23,26,30,.8);padding:4px 12px;border-radius:999px;border:1px solid var(--line);opacity:0;transition:opacity .15s}
   #hint.on{opacity:1}
   #section{position:absolute;left:16px;bottom:16px;display:none;align-items:center;gap:10px;background:rgba(23,26,30,.85);border:1px solid var(--line);padding:8px 12px;border-radius:10px}
@@ -160,8 +160,8 @@
   #askdlg input{background:var(--bed-2);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%}
   #askdlg .row{display:flex;gap:8px;justify-content:flex-end}
   .ver .act button.ren{margin-left:auto}
-  #libbtn,#refbtn,#prbtn{color:var(--ink-2);text-decoration:none;font-weight:600;padding:6px 10px;border:1px solid transparent;border-radius:8px}
-  #libbtn:hover,#refbtn:hover,#prbtn:hover{color:var(--ink);border-color:var(--line-2)}
+  #libbtn,#refbtn,#prbtn,#acctbtn{color:var(--ink-2);text-decoration:none;font-weight:600;padding:6px 8px;white-space:nowrap;border:1px solid transparent;border-radius:8px}
+  #libbtn:hover,#refbtn:hover,#prbtn:hover,#acctbtn:hover{color:var(--ink);border-color:var(--line-2)}
   #prchip{position:absolute;top:56px;left:16px;display:flex;align-items:center;gap:8px;background:rgba(23,26,30,.82);border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 10px;font-size:12.5px;color:var(--ink-2)}
   #prchip select{background:transparent;border:0;color:var(--ink);font-weight:600;padding:2px 4px}
   #prchip select option{background:var(--panel)}
@@ -267,6 +267,9 @@
   /* talk: who/what a message is about */
   #scope{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-3)}
   #scope[hidden]{display:none}
+  #override{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-3);flex-wrap:wrap}
+  #override select{background:var(--bed-2);border:1px solid var(--line);border-radius:6px;padding:3px 6px;color:var(--ink);font-size:12.5px}
+  #override select.set{border-color:var(--marker);color:var(--marker)}
   #scope select{background:var(--bed-2);border:1px solid var(--line);border-radius:6px;padding:3px 6px;color:var(--ink);font-size:12.5px}
   .dp .pc{font-size:11px;font-weight:600;color:var(--ink-2);border-left:3px solid var(--c);padding-left:5px;flex:none;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #bp-comp{background:var(--panel);border:1px solid var(--line-2);border-radius:8px;padding:6px 8px}
@@ -294,7 +297,7 @@
 
   <main id="stage">
     <div id="labels"></div>
-    <div id="partbar"><select id="parts" aria-label="Part"></select><span id="lineage"></span><button id="forkbtn" title="Start a variant from the version you're looking at">Fork</button><button id="newbtn" title="Start a new part from a description">New</button><button id="renbtn" title="Rename this part">Rename</button><a id="libbtn" href="/library.html" title="All parts, families and the trash">Library</a><a id="refbtn" href="/reference.html" title="Material &amp; solvent compatibility reference">Materials</a><a id="prbtn" href="/printers.html" title="Printers, tolerances and send-off services">Printers</a></div><div id="prchip"><select id="prsel" aria-label="Target printer"></select><span id="prfit"></span></div>
+    <div id="partbar"><select id="parts" aria-label="Part"></select><span id="lineage"></span><button id="forkbtn" title="Start a variant from the version you're looking at">Fork</button><button id="newbtn" title="Start a new part from a description">New</button><button id="renbtn" title="Rename this part">Rename</button><a id="libbtn" href="/library.html" title="All parts, families and the trash">Library</a><a id="refbtn" href="/reference.html" title="Material &amp; solvent compatibility reference">Materials</a><a id="prbtn" href="/printers.html" title="Printers, tolerances and send-off services">Printers</a><a id="acctbtn" href="/account.html" title="Connect your own Claude account">Account</a></div><div id="prchip"><select id="prsel" aria-label="Target printer"></select><span id="prfit"></span></div>
     <div id="askdlg" role="dialog"><h3 id="ask-title"></h3><input type="text" id="ask-in" spellcheck="false"><div class="row"><button class="btn" id="ask-cancel">Cancel</button><button class="btn primary" id="ask-ok">Save</button></div></div>
     <div id="newdlg" role="dialog" aria-label="New part">
       <h3>New part</h3>
@@ -348,6 +351,7 @@
         <div id="draftpins"></div>
         <div id="attach"></div>
         <div id="scope" hidden>About <select id="scope-sel" aria-label="What this message is about"></select></div>
+        <div id="override" title="Change the model or effort for this one message; your Account settings are used otherwise">Use <select id="ov-model" aria-label="Model for this message"></select><select id="ov-effort" aria-label="Effort for this message"></select></div>
         <textarea id="text" placeholder="Tell Claude what's wrong with it, or what you want next. Pins and a screenshot of this view go along; paste or drop photos too."></textarea>
         <button id="send">Send to Claude</button>
       </div>
@@ -369,6 +373,6 @@
   </aside>
 </div>
 
-<script type="module" src="studio.js"></script>
+<script type="module" src="studio.js?v=4f02b61"></script>
 </body>
 </html>
